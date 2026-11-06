@@ -56,6 +56,9 @@ pub struct Target {
     /// Preenchido quando algum dos `apps` está em execução.
     #[serde(default)]
     pub running: Option<String>,
+    /// Identificador da entrada correspondente em `catalog::catalog()`.
+    #[serde(default)]
+    pub catalog_id: Option<String>,
 }
 
 impl Target {
@@ -71,7 +74,13 @@ impl Target {
             last_used: None,
             apps: Vec::new(),
             running: None,
+            catalog_id: None,
         }
+    }
+
+    pub fn with_catalog(mut self, id: &str) -> Self {
+        self.catalog_id = Some(id.to_string());
+        self
     }
 
     pub fn with_kind(mut self, kind: TargetKind) -> Self {

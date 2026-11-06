@@ -44,9 +44,10 @@ fn parse_df(out: &str) -> Vec<Target> {
             .as_str()
             .and_then(parse_size)
             .unwrap_or_default();
-        let (kind, name, id, critical) = match v["Type"].as_str() {
+        let (kind, id_cat, name, id, critical) = match v["Type"].as_str() {
             Some("Images") => (
                 TargetKind::DockerImages,
+                "docker-images",
                 "Docker images (unused)",
                 "docker://images",
                 false,
@@ -54,6 +55,7 @@ fn parse_df(out: &str) -> Vec<Target> {
             // Volumes nomeados costumam guardar dados (bancos etc.): crítico.
             Some("Local Volumes") => (
                 TargetKind::DockerVolumes,
+                "docker-volumes",
                 "Docker volumes (unused)",
                 "docker://volumes",
                 true,
@@ -61,8 +63,9 @@ fn parse_df(out: &str) -> Vec<Target> {
             _ => continue,
         };
         if size > 0 {
-            let mut tg =
-                Target::new(Category::Tool, name, PathBuf::from(id), critical).with_kind(kind);
+            let mut tg = Target::new(Category::Tool, name, PathBuf::from(id), critical)
+                .with_kind(kind)
+                .with_catalog(id_cat);
             tg.size = size;
             t.push(tg);
         }

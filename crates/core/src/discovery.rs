@@ -5,23 +5,24 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-fn push(out: &mut Vec<Target>, cat: Category, name: &str, path: Option<PathBuf>) {
-    push_opt(out, cat, name, path, false);
+fn push(out: &mut Vec<Target>, cat: Category, cid: &str, name: &str, path: Option<PathBuf>) {
+    push_opt(out, cat, cid, name, path, false);
 }
 
-fn push_crit(out: &mut Vec<Target>, cat: Category, name: &str, path: Option<PathBuf>) {
-    push_opt(out, cat, name, path, true);
+fn push_crit(out: &mut Vec<Target>, cat: Category, cid: &str, name: &str, path: Option<PathBuf>) {
+    push_opt(out, cat, cid, name, path, true);
 }
 
 fn push_opt(
     out: &mut Vec<Target>,
     cat: Category,
+    cid: &str,
     name: &str,
     path: Option<PathBuf>,
     critical: bool,
 ) {
     if let Some(p) = path.filter(|p| p.is_dir()) {
-        out.push(Target::new(cat, name, p, critical));
+        out.push(Target::new(cat, name, p, critical).with_catalog(cid));
     }
 }
 
@@ -55,255 +56,290 @@ pub fn language_targets() -> Vec<Target> {
     use Category::{Language as L, Tool as T};
 
     // Rust
-    push(&mut t, L, "Cargo registry", h(".cargo/registry"));
-    push(&mut t, L, "Cargo git", h(".cargo/git"));
-    push_crit(&mut t, L, "Rustup toolchains", h(".rustup/toolchains"));
-    push(&mut t, L, "Rustup downloads", h(".rustup/downloads"));
-    // Node / JS
-    push(&mut t, L, "npm cache", h(".npm/_cacache"));
-    push(&mut t, L, "npm cache", l("npm-cache"));
-    push(&mut t, L, "pnpm store", l("pnpm/store"));
-    push(&mut t, L, "pnpm store", h(".local/share/pnpm/store"));
-    push(&mut t, L, "pnpm store", h("Library/pnpm/store"));
-    push(&mut t, L, "Yarn cache", c("yarn"));
-    push(&mut t, L, "Yarn cache", c("Yarn/Cache"));
-    push(&mut t, L, "Yarn cache", l("Yarn/Cache"));
-    push(&mut t, L, "Bun cache", h(".bun/install/cache"));
-    push(&mut t, L, "Deno cache", c("deno"));
-    push(&mut t, L, "node-gyp cache", c("node-gyp"));
-    push(&mut t, L, "node-gyp cache", h(".node-gyp"));
-    push(&mut t, L, "nvm cache", h(".nvm/.cache"));
-    // Python
-    push(&mut t, L, "pip cache", c("pip"));
-    push(&mut t, L, "Poetry cache", c("pypoetry"));
-    push(&mut t, L, "uv cache", c("uv"));
-    push(&mut t, L, "pdm cache", c("pdm"));
-    push(&mut t, L, "pipenv cache", c("pipenv"));
-    push(&mut t, L, "Conda packages", h(".conda/pkgs"));
-    push(&mut t, L, "Conda packages", h("miniconda3/pkgs"));
-    push(&mut t, L, "Conda packages", h("anaconda3/pkgs"));
-    push(&mut t, L, "Conda packages", h("miniforge3/pkgs"));
-    // Java / JVM (Scala, Kotlin, Clojure)
-    push(&mut t, L, "Maven repository", h(".m2/repository"));
-    push(&mut t, L, "Gradle caches", h(".gradle/caches"));
+    push(&mut t, L, "rust", "Cargo registry", h(".cargo/registry"));
+    push(&mut t, L, "rust", "Cargo git", h(".cargo/git"));
+    push_crit(
+        &mut t,
+        L,
+        "rust",
+        "Rustup toolchains",
+        h(".rustup/toolchains"),
+    );
     push(
         &mut t,
         L,
+        "rust",
+        "Rustup downloads",
+        h(".rustup/downloads"),
+    );
+    // Node / JS
+    push(&mut t, L, "npm", "npm cache", h(".npm/_cacache"));
+    push(&mut t, L, "npm", "npm cache", l("npm-cache"));
+    push(&mut t, L, "pnpm", "pnpm store", l("pnpm/store"));
+    push(
+        &mut t,
+        L,
+        "pnpm",
+        "pnpm store",
+        h(".local/share/pnpm/store"),
+    );
+    push(&mut t, L, "pnpm", "pnpm store", h("Library/pnpm/store"));
+    push(&mut t, L, "yarn", "Yarn cache", c("yarn"));
+    push(&mut t, L, "yarn", "Yarn cache", c("Yarn/Cache"));
+    push(&mut t, L, "yarn", "Yarn cache", l("Yarn/Cache"));
+    push(&mut t, L, "bun", "Bun cache", h(".bun/install/cache"));
+    push(&mut t, L, "deno", "Deno cache", c("deno"));
+    push(&mut t, L, "node-gyp", "node-gyp cache", c("node-gyp"));
+    push(&mut t, L, "node-gyp", "node-gyp cache", h(".node-gyp"));
+    push(&mut t, L, "node-gyp", "nvm cache", h(".nvm/.cache"));
+    // Python
+    push(&mut t, L, "pip", "pip cache", c("pip"));
+    push(&mut t, L, "poetry", "Poetry cache", c("pypoetry"));
+    push(&mut t, L, "uv", "uv cache", c("uv"));
+    push(&mut t, L, "pip", "pdm cache", c("pdm"));
+    push(&mut t, L, "pip", "pipenv cache", c("pipenv"));
+    push(&mut t, L, "conda", "Conda packages", h(".conda/pkgs"));
+    push(&mut t, L, "conda", "Conda packages", h("miniconda3/pkgs"));
+    push(&mut t, L, "conda", "Conda packages", h("anaconda3/pkgs"));
+    push(&mut t, L, "conda", "Conda packages", h("miniforge3/pkgs"));
+    // Java / JVM (Scala, Kotlin, Clojure)
+    push(&mut t, L, "maven", "Maven repository", h(".m2/repository"));
+    push(&mut t, L, "gradle", "Gradle caches", h(".gradle/caches"));
+    push(
+        &mut t,
+        L,
+        "gradle",
         "Gradle wrapper dists",
         h(".gradle/wrapper/dists"),
     );
-    push(&mut t, L, "Gradle daemon logs", h(".gradle/daemon"));
-    push(&mut t, L, "sbt ivy2 cache", h(".ivy2/cache"));
-    push(&mut t, L, "sbt boot", h(".sbt/boot"));
-    push(&mut t, L, "Coursier cache", c("coursier"));
-    push(&mut t, L, "Coursier cache", l("Coursier/Cache"));
-    push(&mut t, L, "Coursier cache", h("Library/Caches/Coursier/v1"));
-    push(&mut t, L, "Kotlin Native", h(".konan"));
-    push(&mut t, L, "Gradle daemon logs", h(".gradle/daemon"));
-    push(&mut t, L, "sbt ivy2 cache", h(".ivy2/cache"));
-    push(&mut t, L, "sbt boot", h(".sbt/boot"));
-    push(&mut t, L, "Coursier cache", c("coursier"));
-    push(&mut t, L, "Coursier cache", l("Coursier/Cache"));
-    push(&mut t, L, "Coursier cache", h("Library/Caches/Coursier/v1"));
-    push(&mut t, L, "Kotlin Native", h(".konan"));
-    // Go
-    push(&mut t, L, "Go module cache", h("go/pkg/mod"));
-    push(&mut t, L, "Go build cache", c("go-build"));
-    // .NET
-    push(&mut t, L, "NuGet packages", h(".nuget/packages"));
-    push(&mut t, L, "NuGet http-cache", l("NuGet/v3-cache"));
     push(
         &mut t,
         L,
+        "gradle",
+        "Gradle daemon logs",
+        h(".gradle/daemon"),
+    );
+    push(&mut t, L, "scala", "sbt ivy2 cache", h(".ivy2/cache"));
+    push(&mut t, L, "scala", "sbt boot", h(".sbt/boot"));
+    push(&mut t, L, "scala", "Coursier cache", c("coursier"));
+    push(&mut t, L, "scala", "Coursier cache", l("Coursier/Cache"));
+    push(
+        &mut t,
+        L,
+        "scala",
+        "Coursier cache",
+        h("Library/Caches/Coursier/v1"),
+    );
+    push(&mut t, L, "kotlin", "Kotlin Native", h(".konan"));
+    // Go
+    push(&mut t, L, "go", "Go module cache", h("go/pkg/mod"));
+    push(&mut t, L, "go", "Go build cache", c("go-build"));
+    // .NET
+    push(&mut t, L, "nuget", "NuGet packages", h(".nuget/packages"));
+    push(&mut t, L, "nuget", "NuGet http-cache", l("NuGet/v3-cache"));
+    push(
+        &mut t,
+        L,
+        "nuget",
         "NuGet http-cache",
         h(".local/share/NuGet/v3-cache"),
     );
     // Dart/Flutter, PHP, Ruby
-    push(&mut t, L, "Dart/Flutter pub cache", h(".pub-cache"));
-    push(&mut t, L, "Dart/Flutter pub cache", l("Pub/Cache"));
-    push(&mut t, L, "Composer cache", c("composer"));
-    push(&mut t, L, "Composer cache", c("Composer"));
-    push(&mut t, L, "RubyGems", h(".gem"));
-    push(&mut t, L, "Bundler cache", h(".bundle/cache"));
+    push(&mut t, L, "dart", "Dart/Flutter pub cache", h(".pub-cache"));
+    push(&mut t, L, "dart", "Dart/Flutter pub cache", l("Pub/Cache"));
+    push(&mut t, L, "composer", "Composer cache", c("composer"));
+    push(&mut t, L, "composer", "Composer cache", c("Composer"));
+    push(&mut t, L, "ruby", "RubyGems", h(".gem"));
+    push(&mut t, L, "ruby", "Bundler cache", h(".bundle/cache"));
     // Elixir / Erlang, Haskell, Zig, Julia, Nim, C/C++
-    push(&mut t, L, "Hex packages", h(".hex/packages"));
-    push(&mut t, L, "Hex cache", c("hex"));
-    push(&mut t, L, "Mix archives", h(".mix/archives"));
-    push(&mut t, L, "Rebar3 cache", c("rebar3"));
-    push(&mut t, L, "Cabal packages", h(".cabal/packages"));
-    push(&mut t, L, "Cabal store", h(".cabal/store"));
-    push(&mut t, L, "Stack root", h(".stack"));
-    push(&mut t, L, "GHCup cache", h(".ghcup/cache"));
-    push(&mut t, L, "Zig cache", c("zig"));
-    push(&mut t, L, "Julia compiled cache", h(".julia/compiled"));
-    push(&mut t, L, "Nimble packages", h(".nimble/pkgs2"));
-    push(&mut t, L, "Conan data", h(".conan2/p"));
-    push(&mut t, L, "Conan (v1) data", h(".conan/data"));
-    push(&mut t, L, "vcpkg archives", l("vcpkg/archives"));
-    push(&mut t, L, "vcpkg archives", c("vcpkg/archives"));
-    push(&mut t, L, "LuaRocks cache", c("luarocks"));
-    push(&mut t, L, "CPANM build work", h(".cpanm/work"));
+    push(&mut t, L, "elixir", "Hex packages", h(".hex/packages"));
+    push(&mut t, L, "elixir", "Hex cache", c("hex"));
+    push(&mut t, L, "elixir", "Mix archives", h(".mix/archives"));
+    push(&mut t, L, "elixir", "Rebar3 cache", c("rebar3"));
+    push(&mut t, L, "haskell", "Cabal packages", h(".cabal/packages"));
+    push(&mut t, L, "haskell", "Cabal store", h(".cabal/store"));
+    push(&mut t, L, "haskell", "Stack root", h(".stack"));
+    push(&mut t, L, "haskell", "GHCup cache", h(".ghcup/cache"));
+    push(&mut t, L, "zig", "Zig cache", c("zig"));
+    push(
+        &mut t,
+        L,
+        "julia",
+        "Julia compiled cache",
+        h(".julia/compiled"),
+    );
+    push(&mut t, L, "nim", "Nimble packages", h(".nimble/pkgs2"));
+    push(&mut t, L, "cpp", "Conan data", h(".conan2/p"));
+    push(&mut t, L, "cpp", "Conan (v1) data", h(".conan/data"));
+    push(&mut t, L, "cpp", "vcpkg archives", l("vcpkg/archives"));
+    push(&mut t, L, "cpp", "vcpkg archives", c("vcpkg/archives"));
+    push(&mut t, L, "lua", "LuaRocks cache", c("luarocks"));
+    push(&mut t, L, "perl", "CPANM build work", h(".cpanm/work"));
     // Ferramentas: pacotes / mobile / Apple
-    push(&mut t, T, "Homebrew cache", c("Homebrew"));
+    push(&mut t, T, "homebrew", "Homebrew cache", c("Homebrew"));
     push(
         &mut t,
         T,
+        "xcode",
         "Xcode DerivedData",
         h("Library/Developer/Xcode/DerivedData"),
     );
     push(
         &mut t,
         T,
+        "xcode",
         "Xcode iOS DeviceSupport",
         h("Library/Developer/Xcode/iOS DeviceSupport"),
     );
     push(
         &mut t,
         T,
+        "xcode",
         "Xcode watchOS DeviceSupport",
         h("Library/Developer/Xcode/watchOS DeviceSupport"),
     );
     push_crit(
         &mut t,
         T,
+        "xcode",
         "Xcode Archives",
         h("Library/Developer/Xcode/Archives"),
     );
     push(
         &mut t,
         T,
+        "xcode",
         "Xcode CoreSimulator caches",
         h("Library/Developer/CoreSimulator/Caches"),
     );
-    push(&mut t, T, "CocoaPods cache", h("Library/Caches/CocoaPods"));
-    push(&mut t, T, "CocoaPods repos", h(".cocoapods/repos"));
     push(
         &mut t,
         T,
+        "cocoapods",
+        "CocoaPods cache",
+        h("Library/Caches/CocoaPods"),
+    );
+    push(
+        &mut t,
+        T,
+        "cocoapods",
+        "CocoaPods repos",
+        h(".cocoapods/repos"),
+    );
+    push(
+        &mut t,
+        T,
+        "cocoapods",
         "Swift Package Manager cache",
         h("Library/Caches/org.swift.swiftpm"),
     );
     push(
         &mut t,
         T,
+        "cocoapods",
         "Swift Package Manager cache",
         c("org.swift.swiftpm"),
     );
     push(
         &mut t,
         T,
-        "Xcode watchOS DeviceSupport",
-        h("Library/Developer/Xcode/watchOS DeviceSupport"),
-    );
-    push_crit(
-        &mut t,
-        T,
-        "Xcode Archives",
-        h("Library/Developer/Xcode/Archives"),
+        "android-sdk",
+        "Android SDK cache",
+        h(".android/cache"),
     );
     push(
         &mut t,
         T,
-        "Xcode CoreSimulator caches",
-        h("Library/Developer/CoreSimulator/Caches"),
+        "android-sdk",
+        "Android build-cache",
+        h(".android/build-cache"),
     );
-    push(&mut t, T, "CocoaPods cache", h("Library/Caches/CocoaPods"));
-    push(&mut t, T, "CocoaPods repos", h(".cocoapods/repos"));
-    push(
-        &mut t,
-        T,
-        "Swift Package Manager cache",
-        h("Library/Caches/org.swift.swiftpm"),
-    );
-    push(
-        &mut t,
-        T,
-        "Swift Package Manager cache",
-        c("org.swift.swiftpm"),
-    );
-    push(&mut t, T, "Android SDK cache", h(".android/cache"));
-    push(&mut t, T, "Android build-cache", h(".android/build-cache"));
-    push(&mut t, T, "Expo cache", h(".expo"));
+    push(&mut t, T, "expo", "Expo cache", h(".expo"));
     // Ferramentas: containers, navegadores de teste, compilação
-    push(&mut t, T, "Docker buildx cache", h(".docker/buildx"));
-    push(&mut t, T, "Playwright browsers", c("ms-playwright"));
     push(
         &mut t,
         T,
+        "docker-buildx",
+        "Docker buildx cache",
+        h(".docker/buildx"),
+    );
+    push(
+        &mut t,
+        T,
+        "browsers",
+        "Playwright browsers",
+        c("ms-playwright"),
+    );
+    push(
+        &mut t,
+        T,
+        "browsers",
         "Playwright browsers",
         h("Library/Caches/ms-playwright"),
     );
-    push(&mut t, T, "Puppeteer browsers", h(".cache/puppeteer"));
-    push(&mut t, T, "Cypress cache", c("Cypress"));
-    push(&mut t, T, "Electron cache", c("electron"));
-    push(&mut t, T, "Electron Builder cache", c("electron-builder"));
-    push(&mut t, T, "ccache", c("ccache"));
-    push(&mut t, T, "sccache", c("sccache"));
-    push(&mut t, T, "sccache", l("Mozilla/sccache"));
-    push(&mut t, T, "Bazel cache", c("bazel"));
-    push(&mut t, T, "pre-commit cache", c("pre-commit"));
-    push(&mut t, T, "Turborepo cache", c("turbo"));
-    push(&mut t, T, "Nx cache", c("nx"));
+    push(
+        &mut t,
+        T,
+        "browsers",
+        "Puppeteer browsers",
+        h(".cache/puppeteer"),
+    );
+    push(&mut t, T, "browsers", "Cypress cache", c("Cypress"));
+    push(&mut t, T, "electron", "Electron cache", c("electron"));
+    push(
+        &mut t,
+        T,
+        "electron",
+        "Electron Builder cache",
+        c("electron-builder"),
+    );
+    push(&mut t, T, "ccache", "ccache", c("ccache"));
+    push(&mut t, T, "ccache", "sccache", c("sccache"));
+    push(&mut t, T, "ccache", "sccache", l("Mozilla/sccache"));
+    push(&mut t, T, "ccache", "Bazel cache", c("bazel"));
+    push(&mut t, T, "monorepo", "pre-commit cache", c("pre-commit"));
+    push(&mut t, T, "monorepo", "Turborepo cache", c("turbo"));
+    push(&mut t, T, "monorepo", "Nx cache", c("nx"));
     // Ferramentas: Cloud / DevOps / VMs
     push(
         &mut t,
         T,
+        "cloud",
         "Terraform plugin cache",
         h(".terraform.d/plugin-cache"),
     );
-    push(&mut t, T, "Kubernetes kubectl cache", h(".kube/cache"));
-    push(&mut t, T, "Helm cache", c("helm"));
-    push(&mut t, T, "AWS CLI cache", h(".aws/cli/cache"));
-    push_crit(&mut t, T, "Vagrant boxes", h(".vagrant.d/boxes"));
-    push(&mut t, T, "Minikube cache", h(".minikube/cache"));
-    // Ferramentas: IA / Machine Learning (modelos grandes -> críticos)
-    push_crit(&mut t, T, "Hugging Face cache", h(".cache/huggingface"));
-    push_crit(&mut t, T, "Hugging Face cache", c("huggingface"));
-    push_crit(&mut t, T, "Ollama models", h(".ollama/models"));
-    push_crit(&mut t, T, "PyTorch cache", h(".cache/torch"));
-    push_crit(&mut t, T, "PyTorch cache", c("torch"));
-    push(&mut t, T, "Keras datasets/models", h(".keras"));
-    push_crit(&mut t, T, "LM Studio models", h(".cache/lm-studio/models"));
-    push_crit(&mut t, T, "LM Studio models", h(".lmstudio/models"));
-    push(&mut t, T, "Playwright browsers", c("ms-playwright"));
     push(
         &mut t,
         T,
-        "Playwright browsers",
-        h("Library/Caches/ms-playwright"),
+        "cloud",
+        "Kubernetes kubectl cache",
+        h(".kube/cache"),
     );
-    push(&mut t, T, "Puppeteer browsers", h(".cache/puppeteer"));
-    push(&mut t, T, "Cypress cache", c("Cypress"));
-    push(&mut t, T, "Electron cache", c("electron"));
-    push(&mut t, T, "Electron Builder cache", c("electron-builder"));
-    push(&mut t, T, "ccache", c("ccache"));
-    push(&mut t, T, "sccache", c("sccache"));
-    push(&mut t, T, "sccache", l("Mozilla/sccache"));
-    push(&mut t, T, "Bazel cache", c("bazel"));
-    push(&mut t, T, "pre-commit cache", c("pre-commit"));
-    push(&mut t, T, "Turborepo cache", c("turbo"));
-    push(&mut t, T, "Nx cache", c("nx"));
-    // Ferramentas: Cloud / DevOps / VMs
-    push(
+    push(&mut t, T, "cloud", "Helm cache", c("helm"));
+    push(&mut t, T, "cloud", "AWS CLI cache", h(".aws/cli/cache"));
+    push_crit(&mut t, T, "vms", "Vagrant boxes", h(".vagrant.d/boxes"));
+    push(&mut t, T, "vms", "Minikube cache", h(".minikube/cache"));
+    // Ferramentas: IA / Machine Learning (modelos grandes -> críticos)
+    push_crit(
         &mut t,
         T,
-        "Terraform plugin cache",
-        h(".terraform.d/plugin-cache"),
+        "ai",
+        "Hugging Face cache",
+        h(".cache/huggingface"),
     );
-    push(&mut t, T, "Kubernetes kubectl cache", h(".kube/cache"));
-    push(&mut t, T, "Helm cache", c("helm"));
-    push(&mut t, T, "AWS CLI cache", h(".aws/cli/cache"));
-    push_crit(&mut t, T, "Vagrant boxes", h(".vagrant.d/boxes"));
-    push(&mut t, T, "Minikube cache", h(".minikube/cache"));
-    // Ferramentas: IA / Machine Learning (modelos grandes -> críticos)
-    push_crit(&mut t, T, "Hugging Face cache", h(".cache/huggingface"));
-    push_crit(&mut t, T, "Hugging Face cache", c("huggingface"));
-    push_crit(&mut t, T, "Ollama models", h(".ollama/models"));
-    push_crit(&mut t, T, "PyTorch cache", h(".cache/torch"));
-    push_crit(&mut t, T, "PyTorch cache", c("torch"));
-    push(&mut t, T, "Keras datasets/models", h(".keras"));
-    push_crit(&mut t, T, "LM Studio models", h(".cache/lm-studio/models"));
-    push_crit(&mut t, T, "LM Studio models", h(".lmstudio/models"));
+    push_crit(&mut t, T, "ai", "Hugging Face cache", c("huggingface"));
+    push_crit(&mut t, T, "ai", "Ollama models", h(".ollama/models"));
+    push_crit(&mut t, T, "ai", "PyTorch cache", h(".cache/torch"));
+    push_crit(&mut t, T, "ai", "PyTorch cache", c("torch"));
+    push(&mut t, T, "ai", "Keras datasets/models", h(".keras"));
+    push_crit(
+        &mut t,
+        T,
+        "ai",
+        "LM Studio models",
+        h(".cache/lm-studio/models"),
+    );
+    push_crit(&mut t, T, "ai", "LM Studio models", h(".lmstudio/models"));
 
     t.extend(avd_targets());
 
@@ -336,36 +372,53 @@ fn avd_targets() -> Vec<Target> {
                     snaps,
                     false,
                 )
-                .with_apps(APPS),
+                .with_apps(APPS)
+                .with_catalog("avd"),
             );
         }
-        t.push(Target::new(Category::Tool, format!("Android AVD: {n}"), dir, true).with_apps(APPS));
+        t.push(
+            Target::new(Category::Tool, format!("Android AVD: {n}"), dir, true)
+                .with_apps(APPS)
+                .with_catalog("avd"),
+        );
     }
     t
 }
 
-/// Raízes de extensões (relativas ao home) de editores baseados em VS Code.
-const EXTENSION_ROOTS: &[(&str, &str, &str)] = &[
-    ("VS Code", ".vscode/extensions", "code"),
+/// Raízes de extensões (relativas ao home) de editores baseados em VS Code:
+/// `(produto, caminho, processo, id_catalogo)`.
+const EXTENSION_ROOTS: &[(&str, &str, &str, &str)] = &[
+    ("VS Code", ".vscode/extensions", "code", "vscode"),
     (
         "VS Code Insiders",
         ".vscode-insiders/extensions",
         "code - insiders",
+        "vscode",
     ),
-    ("Cursor", ".cursor/extensions", "cursor"),
-    ("VSCodium", ".vscode-oss/extensions", "vscodium"),
-    ("Windsurf", ".windsurf/extensions", "windsurf"),
-    ("Trae", ".trae/extensions", "trae"),
+    ("Cursor", ".cursor/extensions", "cursor", "vscode-forks"),
+    (
+        "VSCodium",
+        ".vscode-oss/extensions",
+        "vscodium",
+        "vscode-forks",
+    ),
+    (
+        "Windsurf",
+        ".windsurf/extensions",
+        "windsurf",
+        "vscode-forks",
+    ),
+    ("Trae", ".trae/extensions", "trae", "vscode-forks"),
 ];
 
-/// Diretórios de dados (em `config_dir`) com caches desses editores.
-const EDITOR_DATA_DIRS: &[(&str, &str)] = &[
-    ("Code", "code"),
-    ("Code - Insiders", "code - insiders"),
-    ("Cursor", "cursor"),
-    ("VSCodium", "vscodium"),
-    ("Windsurf", "windsurf"),
-    ("Trae", "trae"),
+/// Diretórios de dados (em `config_dir`) com caches desses editores: `(pasta, processo, id_catalogo)`.
+const EDITOR_DATA_DIRS: &[(&str, &str, &str)] = &[
+    ("Code", "code", "vscode"),
+    ("Code - Insiders", "code - insiders", "vscode"),
+    ("Cursor", "cursor", "vscode-forks"),
+    ("VSCodium", "vscodium", "vscode-forks"),
+    ("Windsurf", "windsurf", "vscode-forks"),
+    ("Trae", "trae", "vscode-forks"),
 ];
 
 /// Nome de processo (normalizado) a partir do nome da pasta de produto da JetBrains.
@@ -399,7 +452,7 @@ pub fn ide_targets() -> Vec<Target> {
     use Category::Ide as I;
 
     if let Some(home) = dirs::home_dir() {
-        for (product, rel, app) in EXTENSION_ROOTS {
+        for (product, rel, app, cid) in EXTENSION_ROOTS {
             let dir = home.join(rel);
             if !dir.is_dir() {
                 continue;
@@ -409,17 +462,22 @@ pub fn ide_targets() -> Vec<Target> {
                 let n = old.file_name().unwrap().to_string_lossy().into_owned();
                 t.push(
                     Target::new(I, format!("{product} old extension: {n}"), old, false)
-                        .with_apps(&[app]),
+                        .with_apps(&[app])
+                        .with_catalog(cid),
                 );
             }
             // Pasta inteira: crítica (todas as extensões serão perdidas).
-            t.push(Target::new(I, format!("{product} extensions"), dir, true).with_apps(&[app]));
+            t.push(
+                Target::new(I, format!("{product} extensions"), dir, true)
+                    .with_apps(&[app])
+                    .with_catalog(cid),
+            );
         }
     }
 
     // config_dir: Linux ~/.config | macOS ~/Library/Application Support | Win %APPDATA%
     if let Some(cfg) = dirs::config_dir() {
-        for (product, app) in EDITOR_DATA_DIRS {
+        for (product, app, cid) in EDITOR_DATA_DIRS {
             for sub in [
                 "CachedData",
                 "logs",
@@ -429,7 +487,11 @@ pub fn ide_targets() -> Vec<Target> {
             ] {
                 let p = cfg.join(product).join(sub);
                 if p.is_dir() {
-                    t.push(Target::new(I, format!("{product}/{sub}"), p, false).with_apps(&[app]));
+                    t.push(
+                        Target::new(I, format!("{product}/{sub}"), p, false)
+                            .with_apps(&[app])
+                            .with_catalog(cid),
+                    );
                 }
             }
         }
@@ -439,7 +501,8 @@ pub fn ide_targets() -> Vec<Target> {
         // JetBrains: um alvo por produto/versão (IntelliJIdea2024.1, WebStorm..., etc.)
         for p in subdirs(&cache.join("JetBrains"), |_| true) {
             let n = p.file_name().unwrap().to_string_lossy().into_owned();
-            let mut tg = Target::new(I, format!("JetBrains {n}"), p, false);
+            let mut tg =
+                Target::new(I, format!("JetBrains {n}"), p, false).with_catalog("jetbrains");
             if let Some(app) = jetbrains_app(&n) {
                 tg = tg.with_apps(&[app]);
             }
@@ -448,31 +511,57 @@ pub fn ide_targets() -> Vec<Target> {
         // Android Studio (Google/AndroidStudioX.Y)
         for p in subdirs(&cache.join("Google"), |n| n.starts_with("AndroidStudio")) {
             let n = p.file_name().unwrap().to_string_lossy().into_owned();
-            t.push(Target::new(I, format!("Android Studio {n}"), p, false).with_apps(&["studio"]));
+            t.push(
+                Target::new(I, format!("Android Studio {n}"), p, false)
+                    .with_apps(&["studio"])
+                    .with_catalog("android-studio"),
+            );
         }
         // Sublime Text, Zed, Neovim e Fleet
-        for (name, rel, app) in [
-            ("Sublime Text cache", "Sublime Text/Cache", "sublime_text"),
-            ("Sublime Text cache", "sublime-text/Cache", "sublime_text"),
-            ("Zed cache", "Zed", "zed"),
-            ("Zed cache", "zed", "zed"),
-            ("Neovim cache", "nvim", "nvim"),
-            ("JetBrains Fleet cache", "Fleet", "fleet"),
+        for (name, rel, app, cid) in [
+            (
+                "Sublime Text cache",
+                "Sublime Text/Cache",
+                "sublime_text",
+                "sublime",
+            ),
+            (
+                "Sublime Text cache",
+                "sublime-text/Cache",
+                "sublime_text",
+                "sublime",
+            ),
+            ("Zed cache", "Zed", "zed", "zed"),
+            ("Zed cache", "zed", "zed", "zed"),
+            ("Neovim cache", "nvim", "nvim", "neovim"),
+            ("JetBrains Fleet cache", "Fleet", "fleet", "jetbrains"),
         ] {
             let p = cache.join(rel);
             if p.is_dir() {
-                t.push(Target::new(I, name, p, false).with_apps(&[app]));
+                t.push(
+                    Target::new(I, name, p, false)
+                        .with_apps(&[app])
+                        .with_catalog(cid),
+                );
             }
         }
     }
     if let Some(local) = dirs::data_local_dir() {
         let p = local.join("Zed");
         if p.is_dir() {
-            t.push(Target::new(I, "Zed data", p, false).with_apps(&["zed"]));
+            t.push(
+                Target::new(I, "Zed data", p, false)
+                    .with_apps(&["zed"])
+                    .with_catalog("zed"),
+            );
         }
         let nvim = local.join("nvim-data");
         if nvim.is_dir() {
-            t.push(Target::new(I, "Neovim data", nvim, true).with_apps(&["nvim"]));
+            t.push(
+                Target::new(I, "Neovim data", nvim, true)
+                    .with_apps(&["nvim"])
+                    .with_catalog("neovim"),
+            );
         }
         // Visual Studio: ComponentModelCache e cache de pacotes por versão
         for p in subdirs(&local.join("Microsoft/VisualStudio"), |_| true) {
@@ -486,7 +575,8 @@ pub fn ide_targets() -> Vec<Target> {
                         cmc,
                         false,
                     )
-                    .with_apps(&["devenv"]),
+                    .with_apps(&["devenv"])
+                    .with_catalog("visual-studio"),
                 );
             }
         }
@@ -494,11 +584,19 @@ pub fn ide_targets() -> Vec<Target> {
     if let Some(home) = dirs::home_dir() {
         let nvim_share = home.join(".local/share/nvim");
         if nvim_share.is_dir() {
-            t.push(Target::new(I, "Neovim data", nvim_share, true).with_apps(&["nvim"]));
+            t.push(
+                Target::new(I, "Neovim data", nvim_share, true)
+                    .with_apps(&["nvim"])
+                    .with_catalog("neovim"),
+            );
         }
         let p2 = home.join(".p2/pool");
         if p2.is_dir() {
-            t.push(Target::new(I, "Eclipse p2 bundle pool", p2, true).with_apps(&["eclipse"]));
+            t.push(
+                Target::new(I, "Eclipse p2 bundle pool", p2, true)
+                    .with_apps(&["eclipse"])
+                    .with_catalog("eclipse"),
+            );
         }
     }
     dedup(t)
@@ -619,100 +717,103 @@ pub fn local_targets(root: &Path, max_depth: usize) -> Vec<Target> {
         let dir = entry.path();
         let has = |f: &str| dir.join(f).is_file();
         let has_any = |fs: &[&str]| fs.iter().any(|f| has(f));
-        let mut art: Vec<(&str, &str)> = Vec::new();
+        let mut art: Vec<(&str, &str, &str)> = Vec::new();
         if has("Cargo.toml") {
-            art.push(("Rust", "target"));
+            art.push(("p-rust", "Rust", "target"));
         }
         if has("package.json") {
-            art.push(("Node", "node_modules"));
-            art.push(("Next.js", ".next"));
-            art.push(("Nuxt", ".nuxt"));
-            art.push(("Angular", ".angular"));
-            art.push(("SvelteKit", ".svelte-kit"));
-            art.push(("Astro", ".astro"));
-            art.push(("Nitro/Nuxt", ".output"));
-            art.push(("Turborepo", ".turbo"));
-            art.push(("Parcel", ".parcel-cache"));
+            art.push(("p-node", "Node", "node_modules"));
+            art.push(("p-node", "Next.js", ".next"));
+            art.push(("p-node", "Nuxt", ".nuxt"));
+            art.push(("p-node", "Angular", ".angular"));
+            art.push(("p-node", "SvelteKit", ".svelte-kit"));
+            art.push(("p-node", "Astro", ".astro"));
+            art.push(("p-node", "Nitro/Nuxt", ".output"));
+            art.push(("p-node", "Turborepo", ".turbo"));
+            art.push(("p-node", "Parcel", ".parcel-cache"));
         }
         if has("pom.xml") {
-            art.push(("Maven", "target"));
+            art.push(("p-maven", "Maven", "target"));
         }
         if has("build.gradle") || has("build.gradle.kts") {
-            art.push(("Gradle", "build"));
-            art.push(("Gradle", ".gradle"));
+            art.push(("p-gradle", "Gradle", "build"));
+            art.push(("p-gradle", "Gradle", ".gradle"));
         }
         if has("build.sbt") {
-            art.push(("Scala (sbt)", "target"));
-            art.push(("Scala (sbt)", "project/target"));
+            art.push(("p-scala", "Scala (sbt)", "target"));
+            art.push(("p-scala", "Scala (sbt)", "project/target"));
         }
         if has("project.clj") || has("deps.edn") {
-            art.push(("Clojure", "target"));
-            art.push(("Clojure", ".cpcache"));
+            art.push(("p-clojure", "Clojure", "target"));
+            art.push(("p-clojure", "Clojure", ".cpcache"));
         }
         if has_any(&["pyproject.toml", "requirements.txt", "setup.py", "Pipfile"]) {
-            art.push(("Python", ".venv"));
-            art.push(("Python", "venv"));
-            art.push(("Python", "__pycache__"));
-            art.push(("Python", ".pytest_cache"));
-            art.push(("Python", ".mypy_cache"));
-            art.push(("Python", ".ruff_cache"));
-            art.push(("Python", ".tox"));
-            art.push(("Python", ".nox"));
+            art.push(("p-python", "Python", ".venv"));
+            art.push(("p-python", "Python", "venv"));
+            art.push(("p-python", "Python", "__pycache__"));
+            art.push(("p-python", "Python", ".pytest_cache"));
+            art.push(("p-python", "Python", ".mypy_cache"));
+            art.push(("p-python", "Python", ".ruff_cache"));
+            art.push(("p-python", "Python", ".tox"));
+            art.push(("p-python", "Python", ".nox"));
         }
         if has("pubspec.yaml") {
-            art.push(("Dart", ".dart_tool"));
-            art.push(("Dart", "build"));
+            art.push(("p-dart", "Dart", ".dart_tool"));
+            art.push(("p-dart", "Dart", "build"));
         }
         if has("composer.json") {
-            art.push(("PHP", "vendor"));
+            art.push(("p-php", "PHP", "vendor"));
         }
         if has("Gemfile") {
-            art.push(("Ruby", "vendor/bundle"));
+            art.push(("p-ruby", "Ruby", "vendor/bundle"));
         }
         if has("Package.swift") {
-            art.push(("Swift", ".build"));
+            art.push(("p-swift", "Swift", ".build"));
         }
         if has("Podfile") {
-            art.push(("CocoaPods", "Pods"));
+            art.push(("p-swift", "CocoaPods", "Pods"));
         }
         if has("mix.exs") {
-            art.push(("Elixir", "_build"));
-            art.push(("Elixir", "deps"));
+            art.push(("p-elixir", "Elixir", "_build"));
+            art.push(("p-elixir", "Elixir", "deps"));
         }
         if has("rebar.config") {
-            art.push(("Erlang", "_build"));
+            art.push(("p-elixir", "Erlang", "_build"));
         }
         if has("stack.yaml") || has("cabal.project") {
-            art.push(("Haskell", ".stack-work"));
-            art.push(("Haskell", "dist-newstyle"));
+            art.push(("p-haskell", "Haskell", ".stack-work"));
+            art.push(("p-haskell", "Haskell", "dist-newstyle"));
         }
         if has("build.zig") {
-            art.push(("Zig", "zig-out"));
-            art.push(("Zig", ".zig-cache"));
+            art.push(("p-zig", "Zig", "zig-out"));
+            art.push(("p-zig", "Zig", ".zig-cache"));
         }
         if has("CMakeLists.txt") {
-            art.push(("CMake", "build"));
+            art.push(("p-cmake", "CMake", "build"));
             for sub in subdirs(dir, |n| n.starts_with("cmake-build-")) {
                 if let Some(n) = sub.file_name().map(|s| s.to_string_lossy().into_owned()) {
                     let proj = dir
                         .file_name()
                         .map(|p| p.to_string_lossy().into_owned())
                         .unwrap_or_default();
-                    out.push(Target::new(
-                        Category::LocalProject,
-                        format!("CMake: {proj}/{n}"),
-                        sub,
-                        false,
-                    ));
+                    out.push(
+                        Target::new(
+                            Category::LocalProject,
+                            format!("CMake: {proj}/{n}"),
+                            sub,
+                            false,
+                        )
+                        .with_catalog("p-cmake"),
+                    );
                 }
             }
         }
         // Unity: pasta com Assets/ e ProjectSettings/
         if dir.join("Assets").is_dir() && dir.join("ProjectSettings").is_dir() {
-            art.push(("Unity", "Library"));
-            art.push(("Unity", "Temp"));
-            art.push(("Unity", "Obj"));
-            art.push(("Unity", "Logs"));
+            art.push(("p-unity", "Unity", "Library"));
+            art.push(("p-unity", "Unity", "Temp"));
+            art.push(("p-unity", "Unity", "Obj"));
+            art.push(("p-unity", "Unity", "Logs"));
         }
         let mut dotnet = false;
         let mut haskell_cabal = false;
@@ -726,34 +827,37 @@ pub fn local_targets(root: &Path, max_depth: usize) -> Vec<Target> {
             unreal |= n.ends_with(".uproject");
         }
         if dotnet {
-            art.push((".NET", "bin"));
-            art.push((".NET", "obj"));
+            art.push(("p-dotnet", ".NET", "bin"));
+            art.push(("p-dotnet", ".NET", "obj"));
         }
         if haskell_cabal {
-            art.push(("Haskell", "dist-newstyle"));
+            art.push(("p-haskell", "Haskell", "dist-newstyle"));
         }
         if terraform {
-            art.push(("Terraform", ".terraform"));
+            art.push(("p-terraform", "Terraform", ".terraform"));
         }
         if unreal {
-            art.push(("Unreal", "Intermediate"));
-            art.push(("Unreal", "Binaries"));
-            art.push(("Unreal", "DerivedDataCache"));
-            art.push(("Unreal", "Saved/Logs"));
+            art.push(("p-unreal", "Unreal", "Intermediate"));
+            art.push(("p-unreal", "Unreal", "Binaries"));
+            art.push(("p-unreal", "Unreal", "DerivedDataCache"));
+            art.push(("p-unreal", "Unreal", "Saved/Logs"));
         }
-        for (kind, folder) in art {
+        for (cid, kind, folder) in art {
             let p = dir.join(folder);
             if p.is_dir() && !crate::safety::is_protected(&p) {
                 let proj = dir
                     .file_name()
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_default();
-                out.push(Target::new(
-                    Category::LocalProject,
-                    format!("{kind}: {proj}/{folder}"),
-                    p,
-                    false,
-                ));
+                out.push(
+                    Target::new(
+                        Category::LocalProject,
+                        format!("{kind}: {proj}/{folder}"),
+                        p,
+                        false,
+                    )
+                    .with_catalog(cid),
+                );
             }
         }
     }
@@ -831,6 +935,7 @@ mod tests {
         let found = local_targets(d.path(), 4);
         assert_eq!(found.len(), 1);
         assert!(found[0].path.ends_with("target"));
+        assert_eq!(found[0].catalog_id.as_deref(), Some("p-rust"));
     }
 
     #[test]
@@ -861,6 +966,9 @@ mod tests {
 
         let found = local_targets(d.path(), 4);
         assert_eq!(found.len(), 7);
+        for tg in &found {
+            assert!(tg.catalog_id.is_some());
+        }
     }
 
     #[test]
