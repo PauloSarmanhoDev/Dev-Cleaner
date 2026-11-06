@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/cli", "gui/src-tauri"]
+# `cargo build` / `cargo run` na raiz usam apenas o núcleo e a CLI (sem Tauri).
+default-members = ["crates/core", "crates/cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+anyhow = "1.0"
+dirs = "7"
+rayon = "1.12"
+serde = { version = "1", features = ["derive"] }
+walkdir = "2.5"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

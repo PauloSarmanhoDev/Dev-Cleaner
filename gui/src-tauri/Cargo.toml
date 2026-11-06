@@ -1,0 +1,14 @@
+[package]
+name = "dev-cleaner-gui"
+version.workspace = true
+edition.workspace = true
+description = "Interface gráfica (Tauri) do dev-cleaner"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dev-cleaner-core = { path = "../../crates/core" }
+serde.workspace = true
+tauri = { version = "2", features = [] }
+

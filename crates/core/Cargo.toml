@@ -1,0 +1,12 @@
+[package]
+name = "dev-cleaner-core"
+version.workspace = true
+edition.workspace = true
+description = "Núcleo do dev-cleaner: descoberta, varredura e limpeza (sem UI)"
+
+[dependencies]
+dirs.workspace = true
+rayon.workspace = true
+serde.workspace = true
+walkdir.workspace = true
+
