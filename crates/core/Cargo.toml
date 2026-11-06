@@ -8,5 +8,15 @@ description = "Núcleo do dev-cleaner: descoberta, varredura e limpeza (sem UI)"
 dirs.workspace = true
 rayon.workspace = true
 serde.workspace = true
+serde_json = "1.0.154"
+sys-locale = "0.3.2"
+sysinfo = "0.40.1"
+toml = "1.2.0"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+trash = "5.3.0"
 walkdir.workspace = true
+
+[dev-dependencies]
+tempfile = "3.27.0"
 

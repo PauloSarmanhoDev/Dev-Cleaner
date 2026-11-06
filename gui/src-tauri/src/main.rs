@@ -2,24 +2,27 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use dev_cleaner_core::{
-    cleaner, discovery,
-    model::Target,
+    CancelToken, Warnings,
+    cleaner::{self, CleanOptions, DeleteMode},
+    config, i18n,
+    i18n::{Lang, t, tf},
+    model::{Target, parse_age},
+    pipeline::{self, Selection},
+    safety,
     scanner::{self, ScanProgress},
-    Warnings,
+    store,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{async_runtime::spawn_blocking, AppHandle, Emitter, State};
-
-/// Palavra que o usuário precisa digitar para apagar itens críticos.
-const CRITICAL_PHRASE: &str = "APAGAR";
+use tauri::{AppHandle, Emitter, State, async_runtime::spawn_blocking};
 
 /// Último resultado de varredura. A UI só referencia itens por índice,
 /// então o frontend nunca consegue pedir a remoção de um caminho arbitrário.
 #[derive(Default)]
 struct AppState {
     targets: Mutex<Vec<Target>>,
+    cancel: CancelToken,
 }
 
 #[derive(Deserialize)]
@@ -29,18 +32,26 @@ struct ScanOptions {
     /// Se vazio, projetos locais não são procurados.
     root: Option<String>,
     depth: usize,
+    /// Ex.: "30d". Vazio = sem filtro.
+    older_than: Option<String>,
 }
 
 #[derive(Serialize)]
 struct ScanResult {
     targets: Vec<Target>,
     warnings: Vec<String>,
+    cancelled: bool,
+    /// Idade do resultado em minutos, quando veio do cache.
+    cached_minutes: Option<u64>,
 }
 
 #[derive(Serialize)]
 struct CleanResult {
     freed: u64,
+    removed: usize,
+    skipped: usize,
     warnings: Vec<String>,
+    trashed: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -49,8 +60,62 @@ struct CleanProgress {
     total: usize,
 }
 
+#[derive(Serialize)]
+struct Info {
+    lang: &'static str,
+    audit_log: Option<String>,
+    config_path: Option<String>,
+    permanent_default: bool,
+    older_than_default: Option<String>,
+}
+
 fn take_warnings(w: Warnings) -> Vec<String> {
     w.into_inner().unwrap_or_default()
+}
+
+#[tauri::command]
+fn get_info() -> Info {
+    let (cfg, _) = config::load(None);
+    Info {
+        lang: i18n::lang().code(),
+        audit_log: store::audit_path().map(|p| p.display().to_string()),
+        config_path: config::default_path().map(|p| p.display().to_string()),
+        permanent_default: cfg.permanent,
+        older_than_default: cfg.older_than,
+    }
+}
+
+#[tauri::command]
+fn set_lang(lang: String) {
+    if let Some(l) = Lang::parse(&lang) {
+        i18n::set_lang(l);
+    }
+}
+
+#[tauri::command]
+fn cancel(state: State<'_, AppState>) {
+    state.cancel.cancel();
+}
+
+/// Carrega o último resultado salvo (sem varrer de novo).
+#[tauri::command]
+async fn load_cache(state: State<'_, AppState>) -> Result<ScanResult, String> {
+    let (mins, mut list) = store::load().ok_or_else(|| t("gui.cache_none").to_string())?;
+    spawn_blocking(move || {
+        dev_cleaner_core::procs::annotate(&mut list);
+        list
+    })
+    .await
+    .map(|list| {
+        *state.targets.lock().unwrap() = list.clone();
+        ScanResult {
+            targets: list,
+            warnings: vec![],
+            cancelled: false,
+            cached_minutes: Some(mins),
+        }
+    })
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -59,33 +124,59 @@ async fn scan(
     state: State<'_, AppState>,
     opts: ScanOptions,
 ) -> Result<ScanResult, String> {
-    let (targets, warnings) = spawn_blocking(move || {
+    state.cancel.reset();
+    let cancel = state.cancel.clone();
+    let age = match opts
+        .older_than
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        Some(s) => Some(parse_age(s).ok_or_else(|| format!("older_than: '{s}'"))?),
+        None => None,
+    };
+
+    let (targets, warnings, cancelled) = spawn_blocking(move || {
         let warnings = Warnings::default();
-        let mut candidates = Vec::new();
-        if opts.lang {
-            candidates.extend(discovery::language_targets());
+        let (cfg, cfg_err) = config::load(None);
+        if let Some(e) = cfg_err {
+            warnings.lock().unwrap().push(e);
         }
-        if opts.ide {
-            candidates.extend(discovery::ide_targets());
-        }
-        if let Some(root) = opts.root.as_deref().map(str::trim).filter(|r| !r.is_empty()) {
-            let root = PathBuf::from(root);
-            if root.is_dir() {
-                candidates.extend(discovery::local_targets(&root, opts.depth.clamp(1, 20)));
-            } else {
-                warnings.lock().unwrap().push(format!("Pasta raiz inválida: {}", root.display()));
-            }
-        }
-        let targets = scanner::scan(candidates, &warnings, |p: ScanProgress| {
+        let sel = Selection {
+            lang: opts.lang,
+            ide: opts.ide,
+            root: opts
+                .root
+                .as_deref()
+                .map(str::trim)
+                .filter(|r| !r.is_empty())
+                .map(PathBuf::from),
+            depth: opts.depth,
+        };
+        let candidates = pipeline::candidates(&sel, &cfg, &warnings);
+        let list = scanner::scan(candidates, &warnings, &cancel, |p: ScanProgress| {
             let _ = app.emit("scan-progress", p);
         });
-        (targets, take_warnings(warnings))
+        let cancelled = cancel.is_cancelled();
+        if !cancelled {
+            store::save(&list);
+        }
+        let list = match age {
+            Some(secs) => pipeline::filter_older_than(list, secs),
+            None => list,
+        };
+        (list, take_warnings(warnings), cancelled)
     })
     .await
     .map_err(|e| e.to_string())?;
 
     *state.targets.lock().unwrap() = targets.clone();
-    Ok(ScanResult { targets, warnings })
+    Ok(ScanResult {
+        targets,
+        warnings,
+        cancelled,
+        cached_minutes: None,
+    })
 }
 
 #[tauri::command]
@@ -94,6 +185,8 @@ async fn clean(
     state: State<'_, AppState>,
     indices: Vec<usize>,
     confirmation: Option<String>,
+    permanent: bool,
+    force_running: bool,
 ) -> Result<CleanResult, String> {
     let chosen: Vec<Target> = {
         let all = state.targets.lock().unwrap();
@@ -101,35 +194,66 @@ async fn clean(
         idx.sort_unstable();
         idx.dedup();
         idx.into_iter()
-            .map(|i| all.get(i).cloned().ok_or_else(|| format!("Índice inválido: {i}")))
+            .map(|i| all.get(i).cloned().ok_or_else(|| tf("err.index", &[&i])))
             .collect::<Result<_, _>>()?
     };
     if chosen.is_empty() {
-        return Err("Nada selecionado.".into());
+        return Err(t("err.nothing").into());
     }
-    // A verificação também é feita aqui: não depende só da UI.
-    if chosen.iter().any(|t| t.critical)
-        && confirmation.as_deref().map(str::trim) != Some(CRITICAL_PHRASE)
-    {
-        return Err(format!("Itens críticos exigem digitar {CRITICAL_PHRASE}."));
+    // As verificações também são feitas aqui: não dependem só da UI.
+    safety::check_critical(&chosen.iter().collect::<Vec<_>>(), confirmation.as_deref())?;
+    if !force_running {
+        if let Some(r) = chosen.iter().find_map(|x| x.running.as_ref()) {
+            return Err(format!("{r}: IDE running"));
+        }
     }
 
+    state.cancel.reset();
+    let cancel = state.cancel.clone();
+    let mode = if permanent {
+        DeleteMode::Permanent
+    } else {
+        DeleteMode::Trash
+    };
     spawn_blocking(move || {
         let warnings = Warnings::default();
-        let freed = cleaner::clean(&chosen, &warnings, |done, total| {
+        let opts = CleanOptions {
+            mode,
+            threads: 4,
+            cancel,
+        };
+        let rep = cleaner::clean(&chosen, &warnings, &opts, |done, total| {
             let _ = app.emit("clean-progress", CleanProgress { done, total });
         });
-        CleanResult { freed, warnings: take_warnings(warnings) }
+        CleanResult {
+            freed: rep.freed,
+            removed: rep.removed,
+            skipped: rep.skipped,
+            warnings: take_warnings(warnings),
+            trashed: mode == DeleteMode::Trash,
+        }
     })
     .await
     .map_err(|e| e.to_string())
 }
 
 fn main() {
+    let (cfg, _) = config::load(None);
+    i18n::set_lang(
+        cfg.language
+            .as_deref()
+            .and_then(Lang::parse)
+            .unwrap_or_else(i18n::detect),
+    );
+    store::init_logging();
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![scan, clean])
+        .invoke_handler(tauri::generate_handler![
+            get_info, set_lang, cancel, load_cache, scan, clean
+        ])
         .run(tauri::generate_context!())
         .expect("erro ao executar o Dev Cleaner");
 }
-

@@ -8,58 +8,83 @@
 </head>
 <body>
 <header>
-  <h1>Dev Cleaner</h1>
-  <span class="sub">Caches, extensões e artefatos de linguagens, IDEs e projetos</span>
+  <div>
+    <h1>Dev Cleaner</h1>
+    <span class="sub" data-i18n="subtitle"></span>
+  </div>
+  <div class="header-actions">
+    <select id="lang"><option value="pt">Português</option><option value="en">English</option></select>
+    <button id="btn-theme" title="Tema">◐</button>
+  </div>
 </header>
 
 <section class="panel opts">
-  <label><input type="checkbox" id="opt-lang" checked> Linguagens</label>
-  <label><input type="checkbox" id="opt-ide" checked> IDEs/Editores</label>
-  <label class="root">Pasta de projetos
-    <input type="text" id="opt-root" placeholder="ex.: E:\Git (vazio = não procurar)">
+  <label><input type="checkbox" id="opt-lang" checked> <span data-i18n="opt_lang"></span></label>
+  <label><input type="checkbox" id="opt-ide" checked> <span data-i18n="opt_ide"></span></label>
+  <label class="root"><span data-i18n="opt_root"></span>
+    <input type="text" id="opt-root" data-i18n-ph="opt_root_ph">
+    <button id="btn-pick" data-i18n="pick"></button>
   </label>
-  <label>Profundidade <input type="number" id="opt-depth" value="6" min="1" max="20"></label>
-  <button id="btn-scan" class="primary">Analisar</button>
+  <label><span data-i18n="opt_depth"></span> <input type="number" id="opt-depth" value="6" min="1" max="20"></label>
+  <label><span data-i18n="opt_older"></span> <input type="text" id="opt-older" size="5" placeholder="30d"></label>
+  <label title=""><input type="checkbox" id="opt-perm"> <span data-i18n="opt_perm"></span></label>
+  <button id="btn-scan" class="primary" data-i18n="scan"></button>
+  <button id="btn-cache" data-i18n="use_cache"></button>
 </section>
 
-<div id="progress" class="progress hidden"><div id="bar"></div><span id="progress-text"></span></div>
+<div id="progress" class="progress hidden">
+  <div id="bar"></div><span id="progress-text"></span>
+  <button id="btn-cancel" data-i18n="cancel"></button>
+</div>
+
+<section id="chart" class="panel hidden"></section>
 
 <section class="panel toolbar hidden" id="toolbar">
-  <select id="filter">
-    <option value="">Todos os tipos</option>
-    <option value="Language">Linguagem</option>
-    <option value="Ide">IDE/Editor</option>
-    <option value="LocalProject">Projeto Local</option>
-  </select>
-  <button id="btn-all">Marcar visíveis</button>
-  <button id="btn-none">Desmarcar tudo</button>
+  <select id="filter"></select>
+  <button id="btn-all" data-i18n="sel_visible"></button>
+  <button id="btn-none" data-i18n="sel_none"></button>
   <span id="summary" class="grow"></span>
-  <button id="btn-clean" class="danger" disabled>Remover selecionados</button>
+  <button id="btn-clean" class="danger" disabled data-i18n="remove"></button>
 </section>
 
 <main>
   <table id="table" class="hidden">
-    <thead><tr><th></th><th>Tipo</th><th>Nome</th><th>Caminho</th><th class="num">Arquivos</th><th class="num">Tamanho</th></tr></thead>
+    <thead><tr>
+      <th></th>
+      <th data-sort="category" data-i18n="h_type"></th>
+      <th data-sort="name" data-i18n="h_name"></th>
+      <th data-sort="path" data-i18n="h_path"></th>
+      <th data-sort="files" class="num" data-i18n="h_files"></th>
+      <th data-sort="size" class="num" data-i18n="h_size"></th>
+      <th data-sort="last_used" class="num" data-i18n="h_used"></th>
+      <th></th>
+    </tr></thead>
     <tbody></tbody>
   </table>
-  <p id="empty" class="muted">Clique em “Analisar” para começar.</p>
+  <p id="empty" class="muted"></p>
 </main>
 
-<section id="log" class="panel hidden"><strong>Avisos</strong><ul></ul></section>
+<section id="log" class="panel hidden"><strong data-i18n="warnings"></strong><ul></ul></section>
+<footer class="foot muted"><span id="audit"></span></footer>
 
 <div id="modal" class="modal hidden">
   <div class="dialog">
-    <h2>Confirmar remoção</h2>
+    <h2 data-i18n="confirm_title"></h2>
     <p id="modal-text"></p>
+    <div id="running-box" class="hidden">
+      <p class="warn" data-i18n="running_warn"></p>
+      <ul id="running-list"></ul>
+      <label><input type="checkbox" id="running-ok"> <span data-i18n="running_continue"></span></label>
+    </div>
     <div id="critical-box" class="hidden">
-      <p class="warn">⚠ Itens críticos selecionados (serão perdidos e precisarão ser reinstalados):</p>
+      <p class="warn" data-i18n="critical_warn"></p>
       <ul id="critical-list"></ul>
-      <p>Digite <b>APAGAR</b> para confirmar:</p>
+      <p><span data-i18n="type_word"></span> <b id="critical-word"></b></p>
       <input type="text" id="critical-input" autocomplete="off">
     </div>
     <div class="actions">
-      <button id="modal-cancel">Cancelar</button>
-      <button id="modal-ok" class="danger">Remover</button>
+      <button id="modal-cancel" data-i18n="cancel"></button>
+      <button id="modal-ok" class="danger" data-i18n="remove_btn"></button>
     </div>
   </div>
 </div>
@@ -67,4 +92,3 @@
 <script src="app.js"></script>
 </body>
 </html>
-

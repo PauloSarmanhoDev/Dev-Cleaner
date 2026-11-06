@@ -1,0 +1,65 @@
+name: Release
+
+# Dispare criando uma tag: git tag v0.2.0 && git push --tags
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    name: CLI (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, ext: "" }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, ext: ".exe" }
+          - { os: macos-latest, target: aarch64-apple-darwin, ext: "" }
+          - { os: macos-13, target: x86_64-apple-darwin, ext: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release -p dev-cleaner --target ${{ matrix.target }}
+      - name: Empacotar
+        shell: bash
+        run: |
+          cp target/${{ matrix.target }}/release/dev-cleaner${{ matrix.ext }} dev-cleaner-${{ matrix.target }}${{ matrix.ext }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dev-cleaner-${{ matrix.target }}${{ matrix.ext }}
+
+  gui:
+    name: GUI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Dependências do Tauri (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev
+      - name: Gerar todos os ícones (.icns, tamanhos) a partir do PNG
+        run: |
+          cargo install tauri-cli --version "^2" --locked
+          cargo tauri icon gui/src-tauri/icons/icon.png --output gui/src-tauri/icons
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: gui
+          tagName: ${{ github.ref_name }}
+          releaseName: "Dev Cleaner ${{ github.ref_name }}"
+          releaseDraft: true
+

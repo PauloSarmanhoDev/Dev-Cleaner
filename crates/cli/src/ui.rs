@@ -1,82 +1,134 @@
 //! Tabela e menus interativos.
 
-use dev_cleaner_core::model::{format_size, Target};
 use anyhow::Result;
-use comfy_table::{presets::UTF8_FULL, Cell, Color, ContentArrangement, Table};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect};
+use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
+use dev_cleaner_core::cleaner::DeleteMode;
+use dev_cleaner_core::i18n::{t, tf};
+use dev_cleaner_core::model::{Target, format_size};
+use dev_cleaner_core::safety::CRITICAL_PHRASES;
+use dialoguer::{Confirm, Input, MultiSelect, theme::ColorfulTheme};
 
 pub fn print_table(targets: &[Target]) {
     let mut table = Table::new();
     table
         .load_style(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(["#", "Tipo", "Nome", "Caminho", "Arquivos", "Tamanho"]);
-    for (i, t) in targets.iter().enumerate() {
-        let mut name = Cell::new(&t.name);
-        if t.critical {
+        .set_header([
+            "#",
+            t("ui.h_type"),
+            t("ui.h_name"),
+            t("ui.h_path"),
+            t("ui.h_files"),
+            t("ui.h_size"),
+            t("ui.h_used"),
+        ]);
+    for (i, tg) in targets.iter().enumerate() {
+        let label = if tg.running.is_some() {
+            format!("🔒 {}", tg.name)
+        } else {
+            tg.name.clone()
+        };
+        let mut name = Cell::new(label);
+        if tg.critical {
             name = name.fg(Color::Red);
         }
+        let used = tg
+            .age_days()
+            .map(|d| tf("ui.days_ago", &[&d]))
+            .unwrap_or_else(|| "-".into());
         table.add_row(vec![
             Cell::new(i + 1),
-            Cell::new(t.category.label()),
+            Cell::new(tg.category.label()),
             name,
-            Cell::new(t.path.display()),
-            Cell::new(t.files),
-            Cell::new(format_size(t.size)),
+            Cell::new(tg.path.display()),
+            Cell::new(tg.files),
+            Cell::new(format_size(tg.size)),
+            Cell::new(used),
         ]);
     }
     println!("{table}");
-    let total: u64 = targets.iter().map(|t| t.size).sum();
-    println!("Total recuperável: {}   (vermelho = crítico, exige confirmação)", format_size(total));
+    let total: u64 = targets.iter().map(|x| x.size).sum();
+    println!("{}", tf("ui.total", &[&format_size(total)]));
 }
 
 /// Retorna os índices escolhidos.
 pub fn select(targets: &[Target]) -> Result<Vec<usize>> {
     let items: Vec<String> = targets
         .iter()
-        .map(|t| {
+        .map(|x| {
             format!(
-                "[{}] {} — {} ({}){}",
-                t.category.label(),
-                t.name,
-                format_size(t.size),
-                t.path.display(),
-                if t.critical { "  ⚠ CRÍTICO" } else { "" }
+                "[{}] {} — {} ({}){}{}",
+                x.category.label(),
+                x.name,
+                format_size(x.size),
+                x.path.display(),
+                if x.critical {
+                    t("ui.critical_tag").to_string()
+                } else {
+                    String::new()
+                },
+                x.running
+                    .as_ref()
+                    .map(|r| tf("ui.running_tag", &[r]))
+                    .unwrap_or_default(),
             )
         })
         .collect();
     Ok(MultiSelect::with_theme(&ColorfulTheme::default())
-        .with_prompt("Selecione o que remover (espaço marca, enter confirma)")
+        .with_prompt(t("ui.select_prompt"))
         .items(&items)
         .interact()?)
 }
 
-/// Confirmação geral + confirmação reforçada para itens críticos.
-pub fn confirm(chosen: &[&Target]) -> Result<bool> {
-    let total: u64 = chosen.iter().map(|t| t.size).sum();
+/// Confirmação geral + aviso de IDE aberta + confirmação reforçada para itens críticos.
+pub fn confirm(chosen: &[&Target], mode: DeleteMode) -> Result<bool> {
+    let total: u64 = chosen.iter().map(|x| x.size).sum();
     let theme = ColorfulTheme::default();
+    let mode_txt = if mode == DeleteMode::Trash {
+        t("ui.mode_trash")
+    } else {
+        t("ui.mode_perm")
+    };
     if !Confirm::with_theme(&theme)
-        .with_prompt(format!("Remover {} item(ns), liberando {}?", chosen.len(), format_size(total)))
+        .with_prompt(tf(
+            "ui.confirm",
+            &[&chosen.len(), &format_size(total), &mode_txt],
+        ))
         .default(false)
         .interact()?
     {
         return Ok(false);
     }
-    let critical: Vec<_> = chosen.iter().filter(|t| t.critical).collect();
+
+    let running: Vec<_> = chosen.iter().filter(|x| x.running.is_some()).collect();
+    if !running.is_empty() {
+        println!("\n{}", t("ui.running_warn"));
+        for x in &running {
+            println!("   - {} ({})", x.running.as_deref().unwrap_or(""), x.name);
+        }
+        if !Confirm::with_theme(&theme)
+            .with_prompt(t("ui.running_continue"))
+            .default(false)
+            .interact()?
+        {
+            return Ok(false);
+        }
+    }
+
+    let critical: Vec<_> = chosen.iter().filter(|x| x.critical).collect();
     if !critical.is_empty() {
-        println!("\n⚠ Itens críticos selecionados (extensões de IDE serão perdidas e precisarão ser reinstaladas):");
-        for t in &critical {
-            println!("   - {} ({})", t.name, t.path.display());
+        println!("\n{}", t("ui.critical_warn"));
+        for x in &critical {
+            println!("   - {} ({})", x.name, x.path.display());
         }
         let ans: String = Input::with_theme(&theme)
-            .with_prompt("Digite APAGAR para confirmar")
+            .with_prompt(tf("ui.critical_prompt", &[&t("critical.word")]))
             .allow_empty(true)
             .interact_text()?;
-        if ans.trim() != "APAGAR" {
-            println!("Confirmação não recebida; operação cancelada.");
+        if !CRITICAL_PHRASES.contains(&ans.trim()) {
+            println!("{}", t("ui.critical_abort"));
             return Ok(false);
         }
     }
     Ok(true)
 }
-
