@@ -2,7 +2,7 @@
 //! são pulados e registrados. Toda ação é registrada no log de auditoria.
 
 use crate::i18n::tf;
-use crate::model::Target;
+use crate::model::{Target, TargetKind};
 use crate::{CancelToken, Warnings, safety};
 use rayon::prelude::*;
 use std::fs;
@@ -100,6 +100,16 @@ fn remove_tree(path: &Path, w: &Warnings, cancel: &CancelToken) -> u64 {
     freed
 }
 
+/// Se `path` é uma pasta `<nome>.avd`, devolve o arquivo `<nome>.ini` irmão, se existir.
+fn avd_ini_sibling(path: &Path) -> Option<std::path::PathBuf> {
+    let ext = path.extension()?.to_str()?;
+    if !ext.eq_ignore_ascii_case("avd") {
+        return None;
+    }
+    let ini = path.with_extension("ini");
+    ini.is_file().then_some(ini)
+}
+
 /// Descarta alvos aninhados dentro de outro alvo também selecionado.
 fn drop_nested(targets: &[Target]) -> Vec<&Target> {
     targets
@@ -125,7 +135,7 @@ where
     let list: Vec<&Target> = drop_nested(targets)
         .into_iter()
         .filter(|t| {
-            if safety::is_protected(&t.path) {
+            if t.kind == TargetKind::Dir && safety::is_protected(&t.path) {
                 warn(w, tf("warn.protected", &[&t.path.display()]));
                 false
             } else {
@@ -144,13 +154,30 @@ where
                 let mut freed = 0;
                 if opts.cancel.is_cancelled() {
                     skipped.fetch_add(1, Ordering::Relaxed);
+                } else if t.kind != TargetKind::Dir {
+                    // Docker: o próprio Docker remove (não existe lixeira para isso).
+                    match crate::docker::prune(t.kind) {
+                        Ok(()) => {
+                            freed = t.size;
+                            removed.fetch_add(1, Ordering::Relaxed);
+                            tracing::info!(target = %t.name, size = t.size, "docker pruned");
+                        }
+                        Err(e) => {
+                            skipped.fetch_add(1, Ordering::Relaxed);
+                            warn(w, tf("warn.docker", &[&t.name, &e]));
+                        }
+                    }
                 } else if !t.path.exists() {
                     // Já removido (ex.: era filho de outro item).
                     skipped.fetch_add(1, Ordering::Relaxed);
                 } else {
+                    let avd_ini = avd_ini_sibling(&t.path);
                     match opts.mode {
                         DeleteMode::Trash => match trash::delete(&t.path) {
                             Ok(()) => {
+                                if let Some(ini) = avd_ini {
+                                    let _ = trash::delete(ini);
+                                }
                                 freed = t.size;
                                 removed.fetch_add(1, Ordering::Relaxed);
                                 tracing::info!(path = %t.path.display(), size = t.size, "moved to trash");
@@ -162,6 +189,9 @@ where
                         },
                         DeleteMode::Permanent => {
                             freed = remove_tree(&t.path, w, &opts.cancel);
+                            if let Some(ini) = avd_ini {
+                                let _ = remove_file_force(&ini);
+                            }
                             removed.fetch_add(1, Ordering::Relaxed);
                             tracing::info!(path = %t.path.display(), freed, "deleted permanently");
                         }

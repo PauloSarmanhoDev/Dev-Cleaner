@@ -8,6 +8,20 @@ use dev_cleaner_core::model::{Target, format_size};
 use dev_cleaner_core::safety::CRITICAL_PHRASES;
 use dialoguer::{Confirm, Input, MultiSelect, theme::ColorfulTheme};
 
+/// Tabela do que o programa sabe detectar.
+pub fn print_catalog(entries: &[dev_cleaner_core::catalog::CatalogEntry]) {
+    let mut table = Table::new();
+    table
+        .load_style(UTF8_FULL)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header([t("ui.h_type"), t("ui.h_name"), t("ui.h_what")]);
+    for e in entries {
+        table.add_row(vec![e.category.label(), e.name, e.detail]);
+    }
+    println!("{}", tf("cli.supported_title", &[&entries.len()]));
+    println!("{table}");
+}
+
 pub fn print_table(targets: &[Target]) {
     let mut table = Table::new();
     table
@@ -24,9 +38,9 @@ pub fn print_table(targets: &[Target]) {
         ]);
     for (i, tg) in targets.iter().enumerate() {
         let label = if tg.running.is_some() {
-            format!("🔒 {}", tg.name)
+            format!("🔒 {}", tg.display_name())
         } else {
-            tg.name.clone()
+            tg.display_name()
         };
         let mut name = Cell::new(label);
         if tg.critical {
@@ -59,7 +73,7 @@ pub fn select(targets: &[Target]) -> Result<Vec<usize>> {
             format!(
                 "[{}] {} — {} ({}){}{}",
                 x.category.label(),
-                x.name,
+                x.display_name(),
                 format_size(x.size),
                 x.path.display(),
                 if x.critical {
@@ -104,7 +118,11 @@ pub fn confirm(chosen: &[&Target], mode: DeleteMode) -> Result<bool> {
     if !running.is_empty() {
         println!("\n{}", t("ui.running_warn"));
         for x in &running {
-            println!("   - {} ({})", x.running.as_deref().unwrap_or(""), x.name);
+            println!(
+                "   - {} ({})",
+                x.running.as_deref().unwrap_or(""),
+                x.display_name()
+            );
         }
         if !Confirm::with_theme(&theme)
             .with_prompt(t("ui.running_continue"))
@@ -119,7 +137,7 @@ pub fn confirm(chosen: &[&Target], mode: DeleteMode) -> Result<bool> {
     if !critical.is_empty() {
         println!("\n{}", t("ui.critical_warn"));
         for x in &critical {
-            println!("   - {} ({})", x.name, x.path.display());
+            println!("   - {} ({})", x.display_name(), x.path.display());
         }
         let ans: String = Input::with_theme(&theme)
             .with_prompt(tf("ui.critical_prompt", &[&t("critical.word")]))

@@ -50,8 +50,23 @@ tr:hover td { background:var(--hover); }
 #log { flex-direction:column; align-items:flex-start; max-height:140px; overflow:auto; }
 #log ul { margin:4px 0 0; padding-left:18px; color:var(--muted); font-size:12px; }
 .modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; }
+#msg-modal { z-index:20; }
+td.act { white-space:nowrap; text-align:right; }
+td.act button + button { margin-left:4px; }
+button.info-btn { font-weight:700; font-family:Georgia, serif; min-width:26px; }
 .dialog { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px; width:min(560px,92vw); max-height:90vh; overflow:auto; display:flex; flex-direction:column; gap:10px; }
 .dialog h2 { margin:0; }
 .dialog input[type=text] { width:100%; }
 .warn { color:#f5a524; margin:0; }
 .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:6px; }
+
+.dialog.wide { width:min(860px,94vw); }
+.dialog .pre { white-space:pre-wrap; margin:0; }
+.scroll { overflow:auto; max-height:60vh; border:1px solid var(--line); border-radius:6px; }
+.dialog label.col { flex-direction:column; align-items:stretch; }
+textarea { background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:12px/1.4 Consolas, monospace; }
+.extra-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+.extra-row .x-name { width:150px; }
+.extra-row .x-path { flex:1; }
+#progress-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 8px; }
+#progress-text { min-width:0; }

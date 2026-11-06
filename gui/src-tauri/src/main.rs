@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use dev_cleaner_core::{
-    CancelToken, Warnings,
+    CancelToken, Warnings, catalog,
     cleaner::{self, CleanOptions, DeleteMode},
     config, i18n,
     i18n::{Lang, t, tf},
@@ -69,6 +69,14 @@ struct Info {
     older_than_default: Option<String>,
 }
 
+#[derive(Serialize)]
+struct ConfigView {
+    config: config::Config,
+    path: Option<String>,
+    /// Aviso de leitura (ex.: TOML inválido, caso em que o padrão é mostrado).
+    warning: Option<String>,
+}
+
 fn take_warnings(w: Warnings) -> Vec<String> {
     w.into_inner().unwrap_or_default()
 }
@@ -83,6 +91,52 @@ fn get_info() -> Info {
         permanent_default: cfg.permanent,
         older_than_default: cfg.older_than,
     }
+}
+
+/// Lista do que o programa sabe detectar.
+#[tauri::command]
+fn get_supported() -> Vec<catalog::CatalogEntry> {
+    catalog::catalog()
+}
+
+/// Nomes e descrições dos alvos do último resultado, no idioma atual (mesma ordem/índices).
+#[tauri::command]
+fn target_names(state: State<'_, AppState>) -> Vec<String> {
+    state
+        .targets
+        .lock()
+        .unwrap()
+        .iter()
+        .map(Target::display_name)
+        .collect()
+}
+
+/// Explicação sobre o que cada alvo do último resultado faz e a consequência de apagá-lo.
+#[tauri::command]
+fn target_infos(state: State<'_, AppState>) -> Vec<String> {
+    state
+        .targets
+        .lock()
+        .unwrap()
+        .iter()
+        .map(catalog::describe_target)
+        .collect()
+}
+
+#[tauri::command]
+fn get_config() -> ConfigView {
+    let (config, warning) = config::load(None);
+    ConfigView {
+        config,
+        path: config::default_path().map(|p| p.display().to_string()),
+        warning,
+    }
+}
+
+#[tauri::command]
+fn save_config(mut config: config::Config) -> Result<String, String> {
+    config.validate()?;
+    config::save(None, &config).map(|p| p.display().to_string())
 }
 
 #[tauri::command]
@@ -202,10 +256,8 @@ async fn clean(
     }
     // As verificações também são feitas aqui: não dependem só da UI.
     safety::check_critical(&chosen.iter().collect::<Vec<_>>(), confirmation.as_deref())?;
-    if !force_running {
-        if let Some(r) = chosen.iter().find_map(|x| x.running.as_ref()) {
-            return Err(format!("{r}: IDE running"));
-        }
+    if !force_running && let Some(r) = chosen.iter().find_map(|x| x.running.as_ref()) {
+        return Err(tf("err.running", &[r]));
     }
 
     state.cancel.reset();
@@ -252,7 +304,17 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
-            get_info, set_lang, cancel, load_cache, scan, clean
+            get_info,
+            get_supported,
+            target_names,
+            target_infos,
+            get_config,
+            save_config,
+            set_lang,
+            cancel,
+            load_cache,
+            scan,
+            clean
         ])
         .run(tauri::generate_context!())
         .expect("erro ao executar o Dev Cleaner");

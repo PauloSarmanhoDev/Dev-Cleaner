@@ -25,14 +25,14 @@ gui/
 
 | Tipo | Itens |
 |---|---|
-| Linguagem | Cargo, npm, pnpm, Yarn, Bun, Deno, pip, Poetry, uv, Maven, Gradle (caches e wrapper), Go, NuGet, Dart/Flutter, Composer, RubyGems |
-| Ferramenta | Homebrew, Xcode DerivedData/DeviceSupport, cache do Android SDK, Docker buildx |
-| IDE/Editor | VS Code, VS Code Insiders, Cursor e VSCodium (extensões, `CachedData`, `logs`, `Cache`...), JetBrains (um item por produto/versão), Android Studio, Sublime Text, Zed |
-| Projeto Local | `target`, `node_modules`, `build`, `.gradle`, `.venv`/`venv`, `bin`/`obj`, `.dart_tool`, `vendor` (PHP), `.build` (Swift), detectados por marcadores como `Cargo.toml` e `package.json` |
+| Linguagem | Cargo/Rustup, npm, pnpm, Yarn, Bun, Deno, node-gyp/nvm, pip/pipenv/pdm, Poetry, uv, Conda/Mamba, Maven, Gradle, sbt/Coursier/Ivy, Kotlin Native, Go, NuGet, Dart/Flutter, Composer, RubyGems/Bundler, Elixir/Erlang (Hex, Mix, Rebar3), Haskell (Cabal, Stack, GHCup), Zig, Julia, Nim, C/C++ (Conan, vcpkg), LuaRocks, cpanm |
+| Ferramenta | Homebrew, Xcode (DerivedData, DeviceSupport, CoreSimulator, Archives), CocoaPods, SwiftPM, Android SDK e **emuladores (AVD)**, Expo, Docker (buildx, **imagens e volumes sem uso**), Playwright/Puppeteer/Cypress, Electron, ccache/sccache/Bazel, pre-commit/Turborepo/Nx, Terraform/kubectl/Helm/AWS CLI, Vagrant/Minikube, **IA/ML** (Hugging Face, Ollama, PyTorch, Keras, LM Studio) |
+| IDE/Editor | VS Code, VS Code Insiders, Cursor, Windsurf, Trae e VSCodium (extensões, `.obsolete`, `CachedData`, `logs`, `Cache`...), JetBrains (IDEA, WebStorm, PyCharm, RustRover, Fleet...), Android Studio, Visual Studio, Eclipse, Neovim, Sublime Text, Zed |
+| Projeto Local | Rust (`target`), Node/Web (`node_modules`, `.next`, `.nuxt`, `.angular`, `.svelte-kit`, `.astro`, `.output`, `.turbo`, `.parcel-cache`), Maven/Gradle/sbt/Clojure, Python (`.venv`/`venv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`, `.nox`), Dart/Flutter, PHP (`vendor`), Ruby (`vendor/bundle`), Swift/CocoaPods (`.build`, `Pods`), Elixir/Erlang (`_build`, `deps`), Haskell (`.stack-work`, `dist-newstyle`), Zig (`zig-out`, `.zig-cache`), CMake (`build`, `cmake-build-*`), .NET (`bin`/`obj`), Terraform (`.terraform`), Unity (`Library`, `Temp`, `Obj`, `Logs`), Unreal (`Intermediate`, `Binaries`, `DerivedDataCache`) |
 
 Detalhes:
 - A pasta de **extensões** de cada editor é marcada como **crítica** (exige confirmação reforçada).
-- **Versões antigas de extensões** aparecem como itens separados e não críticos. A versão mais recente de cada extensão é mantida.
+- **Versões antigas de extensões** aparecem como itens separados e não críticos. O arquivo `.obsolete` do VS Code (extensões marcadas para remoção) tem prioridade; nas demais, a versão mais recente de cada extensão é mantida.
 - Projetos locais cujo artefato é **rastreado pelo git** são ignorados, com aviso.
 
 ## Segurança
@@ -80,7 +80,8 @@ cargo run --release -- --root E:\Git --older-than 30d    # só o que não é usa
 | `--include-critical` | Com `--yes`: permite itens críticos |
 | `--force-running` | Com `--yes`: remove mesmo com a IDE aberta |
 | `--config <ARQ>` | Arquivo de configuração |
-| `--lang pt\|en` | Idioma |
+| `--lang pt\|en` | Idioma (também localiza o `--help`) |
+| `--list-supported` | Lista as linguagens, IDEs e ferramentas suportadas e sai (com `--json`, em JSON) |
 
 Modo interativo: setas navegam, espaço marca, Enter confirma. **Ctrl+C** cancela a varredura. Um segundo Ctrl+C encerra o programa.
 
@@ -102,6 +103,9 @@ cargo build -p dev-cleaner-gui --release    # target/release/dev-cleaner-gui(.ex
 - 📂 abre o item no gerenciador de arquivos. 🔒 indica IDE aberta.
 - Botão "Último resultado" carrega a varredura anterior sem refazê-la.
 - Idioma (PT/EN) e tema claro/escuro.
+- **Suportados**: lista tudo o que o programa detecta.
+- **Configurações**: edita `config.toml` (idioma, filtro de idade, lixeira, exclusões e alvos extras). Salvar reescreve o arquivo e perde comentários feitos à mão.
+- A barra de progresso mostra o arquivo/pasta sendo lido.
 
 Instaladores: `cargo install tauri-cli --version "^2"`, depois `cargo tauri build` em `gui/src-tauri`. Antes, rode `cargo tauri icon gui/src-tauri/icons/icon.png --output gui/src-tauri/icons` para gerar todos os tamanhos de ícone.
 
@@ -136,5 +140,7 @@ cargo fmt --all
 ## Limitações conhecidas
 
 - A detecção de IDE aberta compara o nome do processo. Em alguns sistemas ela pode não reconhecer a IDE.
-- Imagens e volumes do Docker não são limpos, só o cache do buildx. Use `docker system prune`.
+- Imagens e volumes do Docker são removidos pelo próprio Docker (`image prune -a`, `volume prune -a`): não passam pela lixeira, mesmo no modo padrão. Volumes são itens críticos. Exige o `docker` no PATH e o daemon ativo.
+- Ao apagar um AVD inteiro, o arquivo `<nome>.ini` ao lado da pasta `.avd` permanece; remova-o no AVD Manager se ele aparecer quebrado.
+- As mensagens de erro do próprio clap (argumento inválido) continuam em inglês.
 - Na lixeira, o espaço só é liberado quando você esvaziá-la.

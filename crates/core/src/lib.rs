@@ -1,9 +1,11 @@
 //! Núcleo do dev-cleaner, compartilhado pela CLI e pela interface Tauri.
 //! Não contém nenhuma UI: o progresso é reportado por callbacks.
 
+pub mod catalog;
 pub mod cleaner;
 pub mod config;
 pub mod discovery;
+pub mod docker;
 pub mod i18n;
 pub mod model;
 pub mod pipeline;

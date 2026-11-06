@@ -22,6 +22,18 @@ impl Category {
     }
 }
 
+/// Como o alvo é removido.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum TargetKind {
+    /// Diretório no disco (lixeira ou remoção permanente).
+    #[default]
+    Dir,
+    /// Imagens Docker sem uso (docker image prune -a). Não passa pela lixeira.
+    DockerImages,
+    /// Volumes Docker sem uso (docker volume prune -a). Não passa pela lixeira.
+    DockerVolumes,
+}
+
 /// Um diretório candidato à limpeza.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Target {
@@ -30,6 +42,9 @@ pub struct Target {
     pub path: PathBuf,
     /// Exige confirmação explícita extra (ex.: extensões de IDEs).
     pub critical: bool,
+    /// Tipo de remoção. Alvos que não são Dir usam o caminho apenas como identificador.
+    #[serde(default)]
+    pub kind: TargetKind,
     pub size: u64,
     pub files: u64,
     /// Modificação mais recente (segundos Unix) de qualquer arquivo dentro.
@@ -50,12 +65,23 @@ impl Target {
             name: name.into(),
             path,
             critical,
+            kind: TargetKind::Dir,
             size: 0,
             files: 0,
             last_used: None,
             apps: Vec::new(),
             running: None,
         }
+    }
+
+    pub fn with_kind(mut self, kind: TargetKind) -> Self {
+        self.kind = kind;
+        self
+    }
+
+    /// Nome traduzido para o idioma atual (o campo `name` guarda o texto canônico em inglês).
+    pub fn display_name(&self) -> String {
+        crate::i18n::localize_name(&self.name)
     }
 
     pub fn with_apps(mut self, apps: &[&str]) -> Self {

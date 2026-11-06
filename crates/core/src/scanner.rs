@@ -1,18 +1,19 @@
 //! Cálculo paralelo de tamanhos (rayon + walkdir), com progresso e cancelamento.
 
 use crate::i18n::tf;
-use crate::model::Target;
+use crate::model::{Target, TargetKind};
 use crate::{CancelToken, Warnings, procs};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::fs;
 use std::path::Path;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::time::{Instant, UNIX_EPOCH};
 use walkdir::WalkDir;
 
 /// Estado reportado ao callback de progresso (a cada ~100 ms, não por arquivo).
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ScanProgress {
     pub done: usize,
     pub total: usize,
@@ -20,12 +21,15 @@ pub struct ScanProgress {
     pub bytes: u64,
     /// Arquivos lidos até o momento.
     pub files: u64,
+    /// Arquivo ou pasta sendo lido agora (amostra: com várias threads é um dos vários em curso).
+    pub current: String,
 }
 
 struct Shared {
     bytes: AtomicU64,
     files: AtomicU64,
     done: AtomicUsize,
+    current: Mutex<String>,
     last_emit: AtomicU64,
     start: Instant,
     total: usize,
@@ -60,6 +64,12 @@ fn mtime(m: &fs::Metadata) -> u64 {
         .unwrap_or(0)
 }
 
+fn set_current(s: &Shared, p: &Path) {
+    if let Ok(mut c) = s.current.lock() {
+        *c = p.display().to_string();
+    }
+}
+
 type Emit<'a> = &'a (dyn Fn(bool) + Sync);
 
 fn measure(path: &Path, w: &Warnings, s: &Shared, cancel: &CancelToken, emit: Emit) -> Acc {
@@ -76,6 +86,7 @@ fn measure(path: &Path, w: &Warnings, s: &Shared, cancel: &CancelToken, emit: Em
                     acc.newest = acc.newest.max(mtime(&m));
                     s.bytes.fetch_add(m.len(), Ordering::Relaxed);
                     if s.files.fetch_add(1, Ordering::Relaxed) & 255 == 0 {
+                        set_current(s, e.path());
                         emit(false);
                     }
                 }
@@ -114,6 +125,7 @@ where
         bytes: AtomicU64::new(0),
         files: AtomicU64::new(0),
         done: AtomicUsize::new(0),
+        current: Mutex::new(String::new()),
         last_emit: AtomicU64::new(0),
         start: Instant::now(),
         total: targets.len(),
@@ -123,6 +135,7 @@ where
         total: s.total,
         bytes: s.bytes.load(Ordering::Relaxed),
         files: s.files.load(Ordering::Relaxed),
+        current: s.current.lock().map(|c| c.clone()).unwrap_or_default(),
     };
     // Limita a frequência dos eventos (importante para a GUI).
     let emit = |force: bool| {
@@ -144,6 +157,13 @@ where
             if cancel.is_cancelled() {
                 return t;
             }
+            // Alvos que não são pasta (Docker) já vêm com o tamanho calculado.
+            if t.kind != TargetKind::Dir {
+                s.done.fetch_add(1, Ordering::Relaxed);
+                emit(true);
+                return t;
+            }
+            set_current(&s, &t.path);
             let acc = children(&t.path, w)
                 .par_iter()
                 .map(|c| {

@@ -20,6 +20,7 @@ pub fn candidates(sel: &Selection, cfg: &Config, w: &Warnings) -> Vec<Target> {
     let mut out = Vec::new();
     if sel.lang {
         out.extend(discovery::language_targets());
+        out.extend(crate::docker::targets());
     }
     if sel.ide {
         out.extend(discovery::ide_targets());

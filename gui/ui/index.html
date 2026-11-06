@@ -14,6 +14,8 @@
   </div>
   <div class="header-actions">
     <select id="lang"><option value="pt">Português</option><option value="en">English</option></select>
+    <button id="btn-supported" data-i18n="supported"></button>
+    <button id="btn-settings" data-i18n="settings"></button>
     <button id="btn-theme" title="Tema">◐</button>
   </div>
 </header>
@@ -85,6 +87,48 @@
     <div class="actions">
       <button id="modal-cancel" data-i18n="cancel"></button>
       <button id="modal-ok" class="danger" data-i18n="remove_btn"></button>
+    </div>
+  </div>
+</div>
+
+<div id="msg-modal" class="modal hidden">
+  <div class="dialog">
+    <h2 id="msg-title"></h2>
+    <p id="msg-text" class="pre"></p>
+    <div class="actions"><button id="msg-ok" class="primary" data-i18n="ok"></button></div>
+  </div>
+</div>
+
+<div id="supported-modal" class="modal hidden">
+  <div class="dialog wide">
+    <h2 data-i18n="supported_title"></h2>
+    <span id="supported-count" class="muted"></span>
+    <div class="scroll">
+      <table id="supported-table">
+        <thead><tr><th data-i18n="h_type"></th><th data-i18n="h_name"></th><th data-i18n="h_what"></th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="actions"><button id="supported-close" data-i18n="close"></button></div>
+  </div>
+</div>
+
+<div id="settings-modal" class="modal hidden">
+  <div class="dialog wide">
+    <h2 data-i18n="settings_title"></h2>
+    <span id="cfg-path" class="muted"></span>
+    <p id="cfg-warn" class="warn"></p>
+    <label><span data-i18n="cfg_lang"></span> <select id="cfg-lang"></select></label>
+    <label><span data-i18n="cfg_older"></span> <input type="text" id="cfg-older" size="6" placeholder="30d"></label>
+    <label><input type="checkbox" id="cfg-perm"> <span data-i18n="cfg_perm"></span></label>
+    <label class="col"><span data-i18n="cfg_exclude"></span> <textarea id="cfg-exclude" rows="4" spellcheck="false"></textarea></label>
+    <div><strong data-i18n="cfg_extra"></strong> <button id="cfg-add" data-i18n="cfg_add"></button></div>
+    <div id="extras-box"></div>
+    <span class="muted" data-i18n="cfg_note"></span>
+    <p id="cfg-error" class="warn"></p>
+    <div class="actions">
+      <button id="cfg-cancel" data-i18n="cancel"></button>
+      <button id="cfg-save" class="primary" data-i18n="save"></button>
     </div>
   </div>
 </div>

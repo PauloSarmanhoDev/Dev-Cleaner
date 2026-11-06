@@ -1,12 +1,12 @@
 mod ui;
 
 use anyhow::{Result, bail};
-use clap::Parser;
+use clap::{Arg, ArgAction, CommandFactory, FromArgMatches, Parser};
 use dev_cleaner_core::cleaner::{self, CleanOptions, DeleteMode};
 use dev_cleaner_core::i18n::{self, Lang, t, tf};
 use dev_cleaner_core::model::{Target, format_size, parse_age};
 use dev_cleaner_core::pipeline::{self, Selection};
-use dev_cleaner_core::{CancelToken, Warnings, config, scanner, store};
+use dev_cleaner_core::{CancelToken, Warnings, catalog, config, scanner, store};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -67,10 +67,93 @@ struct Cli {
     cached: bool,
     /// Arquivo de configuração (padrão: <config>/dev-cleaner/config.toml)
     #[arg(long, value_name = "FILE")]
+    #[allow(dead_code)] // lido antes do parse por `raw_arg`, para localizar o --help
     config: Option<PathBuf>,
     /// Idioma: pt ou en
     #[arg(long, value_name = "LANG")]
     lang: Option<String>,
+    /// Lista as linguagens, IDEs e ferramentas suportadas e sai
+    #[arg(long, alias = "supported")]
+    list_supported: bool,
+}
+
+/// Valor de --flag x / --flag=x nos argumentos crus (a ajuda precisa do idioma antes do parse).
+fn raw_arg(flag: &str) -> Option<String> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let eq = format!("{flag}=");
+    args.iter().enumerate().find_map(|(i, a)| {
+        a.strip_prefix(&eq)
+            .map(str::to_string)
+            .or_else(|| (a == flag).then(|| args.get(i + 1).cloned()).flatten())
+    })
+}
+
+/// Idioma: --lang, depois o config, depois o do sistema.
+fn resolve_lang(flag: Option<&str>, cfg_lang: Option<&str>) -> Lang {
+    flag.and_then(Lang::parse)
+        .or_else(|| cfg_lang.and_then(Lang::parse))
+        .unwrap_or_else(i18n::detect)
+}
+
+/// Comando clap com todos os textos de ajuda no idioma atual.
+fn localized_command() -> clap::Command {
+    let mut cmd = Cli::command()
+        .about(t("cli.about"))
+        .disable_help_flag(true)
+        .disable_version_flag(true)
+        .help_template(format!(
+            "{{about-with-newline}}\n{}: {{usage}}\n\n{}:\n{{options}}",
+            t("help.usage"),
+            t("help.options")
+        ))
+        .arg(
+            Arg::new("help")
+                .short('h')
+                .long("help")
+                .action(ArgAction::Help)
+                .help(t("help.help")),
+        )
+        .arg(
+            Arg::new("version")
+                .short('V')
+                .long("version")
+                .action(ArgAction::Version)
+                .help(t("help.version")),
+        );
+    for id in [
+        "root",
+        "depth",
+        "no_local",
+        "no_ide",
+        "no_lang",
+        "dry_run",
+        "older_than",
+        "permanent",
+        "jobs",
+        "yes",
+        "select",
+        "all",
+        "include_critical",
+        "force_running",
+        "json",
+        "cached",
+        "config",
+        "lang",
+        "list_supported",
+    ] {
+        cmd = cmd.mut_arg(id, |a| a.help(t(&format!("help.{id}"))));
+    }
+    cmd
+}
+
+/// Últimos max caracteres de s (para caber numa linha de progresso).
+fn tail(s: &str, max: usize) -> String {
+    let n = s.chars().count();
+    if n <= max {
+        s.to_string()
+    } else {
+        format!("…{}", s.chars().skip(n - max + 1).collect::<String>())
+    }
 }
 
 /// Índices dos alvos cujo nome ou caminho contém algum dos textos (sem diferenciar maiúsculas).
@@ -80,7 +163,8 @@ fn matching(targets: &[Target], patterns: &[String]) -> Vec<usize> {
         .iter()
         .enumerate()
         .filter(|(_, x)| {
-            let hay = format!("{} {}", x.name, x.path.display()).to_lowercase();
+            let hay =
+                format!("{} {} {}", x.name, x.display_name(), x.path.display()).to_lowercase();
             pats.iter().any(|p| hay.contains(p))
         })
         .map(|(i, _)| i)
@@ -88,20 +172,26 @@ fn matching(targets: &[Target], patterns: &[String]) -> Vec<usize> {
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse();
+    // O idioma precisa ser conhecido antes do parse para localizar o --help.
+    let cfg_path = raw_arg("--config").map(PathBuf::from);
+    let (cfg, cfg_err) = config::load(cfg_path.as_deref());
+    i18n::set_lang(resolve_lang(
+        raw_arg("--lang").as_deref(),
+        cfg.language.as_deref(),
+    ));
+    let cli = Cli::from_arg_matches(&localized_command().get_matches())?;
     let warnings = Warnings::default();
-
-    let (cfg, cfg_err) = config::load(cli.config.as_deref());
     if let Some(e) = cfg_err {
         warnings.lock().unwrap().push(e);
     }
-    let lang = cli
-        .lang
-        .as_deref()
-        .and_then(Lang::parse)
-        .or_else(|| cfg.language.as_deref().and_then(Lang::parse))
-        .unwrap_or_else(i18n::detect);
-    i18n::set_lang(lang);
+    if cli.list_supported {
+        if cli.json {
+            println!("{}", serde_json::to_string_pretty(&catalog::catalog())?);
+        } else {
+            ui::print_catalog(&catalog::catalog());
+        }
+        return Ok(());
+    }
     let audit = store::init_logging();
 
     let age = match cli.older_than.as_deref().or(cfg.older_than.as_deref()) {
@@ -160,9 +250,10 @@ fn main() -> Result<()> {
             let list = scanner::scan(candidates, &warnings, &cancel, |p| {
                 pb.set_position(p.done as u64);
                 pb.set_message(format!(
-                    "{} • {} files",
+                    "{} • {} files • {}",
                     tf("cli.found", &[&format_size(p.bytes)]),
-                    p.files
+                    p.files,
+                    tail(&p.current, 50)
                 ));
             });
             pb.finish_and_clear();
@@ -207,11 +298,11 @@ fn main() -> Result<()> {
                 .map(|i| &targets[i])
                 .filter(|x| {
                     if x.critical && !cli.include_critical {
-                        eprintln!("{}", tf("cli.skip_critical", &[&x.name]));
+                        eprintln!("{}", tf("cli.skip_critical", &[&x.display_name()]));
                         return false;
                     }
                     if let (Some(app), false) = (&x.running, cli.force_running) {
-                        eprintln!("{}", tf("cli.skip_running", &[app, &x.name]));
+                        eprintln!("{}", tf("cli.skip_running", &[app, &x.display_name()]));
                         return false;
                     }
                     true
