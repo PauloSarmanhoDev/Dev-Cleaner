@@ -25,14 +25,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - run: cargo build --release -p dev-cleaner --target ${{ matrix.target }}
+      - run: cargo build --release -p scour --target ${{ matrix.target }}
       - name: Empacotar
         shell: bash
         run: |
-          cp target/${{ matrix.target }}/release/dev-cleaner${{ matrix.ext }} dev-cleaner-${{ matrix.target }}${{ matrix.ext }}
+          cp target/${{ matrix.target }}/release/scour${{ matrix.ext }} scour-${{ matrix.target }}${{ matrix.ext }}
       - uses: softprops/action-gh-release@v2
         with:
-          files: dev-cleaner-${{ matrix.target }}${{ matrix.ext }}
+          files: scour-${{ matrix.target }}${{ matrix.ext }}
 
   gui:
     name: GUI (${{ matrix.os }})
@@ -60,6 +60,6 @@ jobs:
         with:
           projectPath: gui
           tagName: ${{ github.ref_name }}
-          releaseName: "Dev Cleaner ${{ github.ref_name }}"
+          releaseName: "Scour ${{ github.ref_name }}"
           releaseDraft: true
 

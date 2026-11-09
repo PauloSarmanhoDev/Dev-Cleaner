@@ -2,14 +2,14 @@
 
 use anyhow::Result;
 use comfy_table::{Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
-use dev_cleaner_core::cleaner::DeleteMode;
-use dev_cleaner_core::i18n::{t, tf};
-use dev_cleaner_core::model::{Target, format_size};
-use dev_cleaner_core::safety::CRITICAL_PHRASES;
 use dialoguer::{Confirm, Input, MultiSelect, theme::ColorfulTheme};
+use scour_core::cleaner::DeleteMode;
+use scour_core::i18n::{t, tf};
+use scour_core::model::{Target, format_size};
+use scour_core::safety::CRITICAL_PHRASES;
 
 /// Tabela do que o programa sabe detectar.
-pub fn print_catalog(entries: &[dev_cleaner_core::catalog::CatalogEntry]) {
+pub fn print_catalog(entries: &[scour_core::catalog::CatalogEntry]) {
     let mut table = Table::new();
     table
         .load_style(UTF8_FULL)

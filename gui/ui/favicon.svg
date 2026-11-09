@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>Scour symbol</title><g transform="translate(-12.42 -12.42) scale(1.097)">
+  <title id="title">Scour small symbol</title>
+  <g id="symbol">
+    <g id="storage-stack" fill="#8B9BB4">
+      <path d="M 26 16 H 174 L 184 26 V 48 L 174 58 H 26 L 16 48 V 26 Z" />
+      <path d="M 26 74 H 100 L 74 100 V 116 H 26 L 16 106 V 84 Z" />
+      <path d="M 26 132 H 74 V 146 L 102 174 H 26 L 16 164 V 142 Z" />
+    </g>
+    <g id="s-chisel">
+      <path id="s-blade-upper" fill="#FF5C28" d="M 128 72 H 240 L 204 108 H 142 L 128 122 V 138 H 170 L 134 174 H 118 L 92 148 V 108 Z" />
+      <path id="s-blade-lower" fill="#F8FAFC" d="M 204 240 H 92 L 128 204 H 190 L 204 190 V 174 H 162 L 198 138 H 214 L 240 164 V 204 Z" />
+    </g>
+  </g>
+</g></svg>

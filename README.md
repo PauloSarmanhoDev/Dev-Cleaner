@@ -1,23 +1,25 @@
-# dev-cleaner
+# <picture><source media="(prefers-color-scheme: dark)" srcset="gui/src-tauri/icons/scour-horizontal-on-dark.svg"><source media="(prefers-color-scheme: light)" srcset="gui/src-tauri/icons/scour-horizontal.svg"><img alt="Scour" src="gui/src-tauri/icons/scour-horizontal.svg" height="48"></picture>
 
-Ferramenta em Rust que varre e limpa caches, extensões e artefatos de build deixados por **linguagens/gerenciadores de pacotes**, **IDEs/editores**, **ferramentas** e **projetos locais**. Funciona em Windows, macOS e Linux e tem **duas interfaces**:
+**Deep disk & build-artifact cleaner for developers**
 
-- **CLI** (terminal): `dev-cleaner`
-- **GUI** (janela, Tauri 2): `dev-cleaner-gui`
+Ferramenta multiplataforma em Rust que varre e limpa caches, extensões obsoletas e artefatos de build deixados por **linguagens/gerenciadores de pacotes**, **IDEs/editores**, **ferramentas** e **projetos locais**. Funciona em Windows, macOS e Linux e tem **duas interfaces**:
 
-As duas usam o mesmo núcleo (`dev-cleaner-core`). Detectam e limpam as mesmas coisas, com as mesmas regras de segurança. Interface em **português e inglês**.
+- **CLI** (terminal): `scour`
+- **GUI** (janela, Tauri 2): `scour-gui`
+
+As duas usam o mesmo núcleo (`scour-core`). Detectam e limpam as mesmas coisas, com as mesmas regras de segurança. Interface em **português e inglês**.
 
 ## Estrutura
 
 ```
 Cargo.toml              # workspace
 crates/
-├── core/               # lógica sem UI
-│   └── src/{model,discovery,scanner,cleaner,safety,procs,config,store,pipeline,i18n}.rs
-└── cli/                # interface de terminal
+├── core/               # lógica sem UI (scour-core)
+│   └── src/{model,discovery,scanner,cleaner,safety,procs,config,store,pipeline,i18n,catalog,docker}.rs
+└── cli/                # interface de terminal (scour)
 gui/
 ├── ui/                 # frontend (HTML/CSS/JS puro, sem Node)
-└── src-tauri/          # backend Tauri
+└── src-tauri/          # backend Tauri (scour-gui)
 .github/workflows/      # CI e releases
 ```
 
@@ -43,7 +45,7 @@ Detalhes:
 - **Itens críticos** exigem digitar `APAGAR` (ou `DELETE`). A GUI e a CLI pedem isso, e o backend valida de novo.
 - A GUI só envia **índices** do último resultado ao backend, nunca caminhos.
 - Nenhum item vem marcado por padrão.
-- **Auditoria.** Cada remoção é registrada em `audit.log` (Windows: `%LOCALAPPDATA%\dev-cleaner\`, Linux: `~/.local/share/dev-cleaner/`, macOS: `~/Library/Application Support/dev-cleaner/`).
+- **Auditoria.** Cada remoção é registrada em `audit.log` (Windows: `%LOCALAPPDATA%\scour\`, Linux: `~/.local/share/scour/`, macOS: `~/Library/Application Support/scour/`).
 - Arquivos bloqueados ou sem permissão viram avisos. Arquivos somente leitura são liberados e removidos.
 
 ## Requisitos
@@ -56,7 +58,7 @@ Detalhes:
 `cargo build` e `cargo run` na raiz compilam só o núcleo e a CLI.
 
 ```sh
-cargo build --release          # target/release/dev-cleaner(.exe)
+cargo build --release          # target/release/scour(.exe)
 
 cargo run --release -- --dry-run                  # só lista
 cargo run --release -- --root E:\Git              # + projetos locais
@@ -87,14 +89,14 @@ Modo interativo: setas navegam, espaço marca, Enter confirma. **Ctrl+C** cancel
 
 Exemplo para scripts e CI:
 ```sh
-dev-cleaner --root . --no-lang --no-ide --yes --select node_modules --older-than 14d
+scour --root . --no-lang --no-ide --yes --select node_modules --older-than 14d
 ```
 
 ## GUI
 
 ```sh
-cargo run -p dev-cleaner-gui                # desenvolvimento
-cargo build -p dev-cleaner-gui --release    # target/release/dev-cleaner-gui(.exe)
+cargo run -p scour-gui                # desenvolvimento
+cargo build -p scour-gui --release    # target/release/scour-gui(.exe)
 ```
 
 - Seletor de pasta, filtro por idade, opção de remoção permanente.
@@ -111,7 +113,7 @@ Instaladores: `cargo install tauri-cli --version "^2"`, depois `cargo tauri buil
 
 ## Configuração (opcional)
 
-`<config>/dev-cleaner/config.toml` (Windows: `%APPDATA%`, Linux: `~/.config`, macOS: `~/Library/Application Support`):
+`<config>/scour/config.toml` (Windows: `%APPDATA%`, Linux: `~/.config`, macOS: `~/Library/Application Support`):
 
 ```toml
 language = "pt"        # pt | en
@@ -129,8 +131,8 @@ critical = false
 ## Desenvolvimento
 
 ```sh
-cargo test --workspace --exclude dev-cleaner-gui
-cargo clippy --workspace --exclude dev-cleaner-gui --all-targets -- -D warnings
+cargo test --workspace --exclude scour-gui
+cargo clippy --workspace --exclude scour-gui --all-targets -- -D warnings
 cargo fmt --all
 ```
 

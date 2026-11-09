@@ -1,4 +1,4 @@
-//! Núcleo do dev-cleaner, compartilhado pela CLI e pela interface Tauri.
+//! Núcleo do Scour, compartilhado pela CLI e pela interface Tauri.
 //! Não contém nenhuma UI: o progresso é reportado por callbacks.
 
 pub mod catalog;

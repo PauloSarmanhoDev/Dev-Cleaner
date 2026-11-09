@@ -110,8 +110,8 @@ const TABLE: &[(&str, &str, &str)] = &[
     // CLI
     (
         "cli.about",
-        "Limpa caches e artefatos de linguagens, IDEs e projetos locais",
-        "Cleans caches and artifacts of languages, IDEs and local projects",
+        "Scour — Limpa profundamente caches e artefatos de build de linguagens, IDEs e projetos locais",
+        "Scour — Deep disk & build-artifact cleaner for developers",
     ),
     (
         "cli.analyzing",
@@ -367,8 +367,8 @@ const TABLE: &[(&str, &str, &str)] = &[
     ),
     (
         "help.config",
-        "Arquivo de configuração (padrão: <config>/dev-cleaner/config.toml)",
-        "Configuration file (default: <config>/dev-cleaner/config.toml)",
+        "Arquivo de configuração (padrão: <config>/scour/config.toml)",
+        "Configuration file (default: <config>/scour/config.toml)",
     ),
     ("help.lang", "Idioma: pt ou en", "Language: pt or en"),
     (

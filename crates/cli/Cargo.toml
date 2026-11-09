@@ -1,11 +1,11 @@
 [package]
-name = "dev-cleaner"
+name = "scour"
 version.workspace = true
 edition.workspace = true
-description = "Limpa caches e artefatos de linguagens, IDEs e projetos locais (CLI)"
+description = "Scour — Deep disk & build-artifact cleaner for developers (CLI)"
 
 [dependencies]
-dev-cleaner-core = { path = "../core" }
+scour-core = { path = "../core" }
 anyhow.workspace = true
 clap = { version = "4", features = ["derive"] }
 comfy-table = "8"

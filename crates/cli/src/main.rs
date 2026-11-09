@@ -2,19 +2,19 @@ mod ui;
 
 use anyhow::{Result, bail};
 use clap::{Arg, ArgAction, CommandFactory, FromArgMatches, Parser};
-use dev_cleaner_core::cleaner::{self, CleanOptions, DeleteMode};
-use dev_cleaner_core::i18n::{self, Lang, t, tf};
-use dev_cleaner_core::model::{Target, format_size, parse_age};
-use dev_cleaner_core::pipeline::{self, Selection};
-use dev_cleaner_core::{CancelToken, Warnings, catalog, config, scanner, store};
 use indicatif::{ProgressBar, ProgressStyle};
+use scour_core::cleaner::{self, CleanOptions, DeleteMode};
+use scour_core::i18n::{self, Lang, t, tf};
+use scour_core::model::{Target, format_size, parse_age};
+use scour_core::pipeline::{self, Selection};
+use scour_core::{CancelToken, Warnings, catalog, config, scanner, store};
 use std::io::IsTerminal;
 use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(
     version,
-    about = "Cleans caches and artifacts of languages, IDEs and local projects / Limpa caches e artefatos"
+    about = "Scour — Deep disk & build-artifact cleaner for developers / Limpa caches e artefatos"
 )]
 struct Cli {
     /// Diretório raiz para procurar projetos locais / Root folder to look for local projects
@@ -65,7 +65,7 @@ struct Cli {
     /// Reutiliza o último resultado salvo em vez de varrer de novo
     #[arg(long)]
     cached: bool,
-    /// Arquivo de configuração (padrão: <config>/dev-cleaner/config.toml)
+    /// Arquivo de configuração (padrão: <config>/scour/config.toml)
     #[arg(long, value_name = "FILE")]
     #[allow(dead_code)] // lido antes do parse por `raw_arg`, para localizar o --help
     config: Option<PathBuf>,
@@ -221,7 +221,7 @@ fn main() -> Result<()> {
         match store::load() {
             Some((mins, mut list)) => {
                 println!("{}", tf("cli.cached", &[&mins]));
-                dev_cleaner_core::procs::annotate(&mut list);
+                scour_core::procs::annotate(&mut list);
                 targets = Some(list);
             }
             None => println!("{}", t("cli.no_cache")),
@@ -370,7 +370,7 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dev_cleaner_core::model::Category;
+    use scour_core::model::Category;
 
     #[test]
     fn select_matches_name_or_path_case_insensitively() {

@@ -1,7 +1,7 @@
 // Evita abrir um console extra no Windows em release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use dev_cleaner_core::{
+use scour_core::{
     CancelToken, Warnings, catalog,
     cleaner::{self, CleanOptions, DeleteMode},
     config, i18n,
@@ -156,7 +156,7 @@ fn cancel(state: State<'_, AppState>) {
 async fn load_cache(state: State<'_, AppState>) -> Result<ScanResult, String> {
     let (mins, mut list) = store::load().ok_or_else(|| t("gui.cache_none").to_string())?;
     spawn_blocking(move || {
-        dev_cleaner_core::procs::annotate(&mut list);
+        scour_core::procs::annotate(&mut list);
         list
     })
     .await
@@ -317,5 +317,5 @@ fn main() {
             clean
         ])
         .run(tauri::generate_context!())
-        .expect("erro ao executar o Dev Cleaner");
+        .expect("erro ao executar o Scour");
 }

@@ -1,8 +1,8 @@
 [package]
-name = "dev-cleaner-core"
+name = "scour-core"
 version.workspace = true
 edition.workspace = true
-description = "Núcleo do dev-cleaner: descoberta, varredura e limpeza (sem UI)"
+description = "Núcleo do Scour: descoberta, varredura e limpeza (sem UI)"
 
 [dependencies]
 dirs.workspace = true

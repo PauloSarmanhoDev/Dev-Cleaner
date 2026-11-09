@@ -1,4 +1,4 @@
-//! Arquivo de configuração opcional (`dev-cleaner.toml`).
+//! Arquivo de configuração opcional (`config.toml` do Scour).
 //!
 //! ```toml
 //! language = "pt"          # ou "en"
@@ -38,7 +38,7 @@ pub struct ExtraTarget {
 }
 
 pub fn default_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("dev-cleaner").join("config.toml"))
+    dirs::config_dir().map(|d| d.join("scour").join("config.toml"))
 }
 
 fn expand(p: &str) -> PathBuf {

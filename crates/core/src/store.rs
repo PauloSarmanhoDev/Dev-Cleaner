@@ -12,7 +12,7 @@ struct Saved {
 }
 
 fn base_dir() -> Option<PathBuf> {
-    dirs::cache_dir().map(|d| d.join("dev-cleaner"))
+    dirs::cache_dir().map(|d| d.join("scour"))
 }
 
 pub fn save(targets: &[Target]) {
@@ -38,7 +38,7 @@ pub fn load() -> Option<(u64, Vec<Target>)> {
 
 /// Caminho do log de auditoria.
 pub fn audit_path() -> Option<PathBuf> {
-    dirs::data_local_dir().map(|d| d.join("dev-cleaner").join("audit.log"))
+    dirs::data_local_dir().map(|d| d.join("scour").join("audit.log"))
 }
 
 /// Inicia o log (tracing) em arquivo: toda remoção é registrada. Retorna o caminho.

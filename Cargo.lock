@@ -892,52 +892,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dev-cleaner"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "comfy-table",
- "ctrlc",
- "dev-cleaner-core",
- "dialoguer",
- "indicatif",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "dev-cleaner-core"
-version = "0.1.0"
-dependencies = [
- "dirs",
- "rayon",
- "serde",
- "serde_json",
- "sys-locale",
- "sysinfo",
- "tempfile",
- "toml 1.2.0+spec-1.1.0",
- "tracing",
- "tracing-subscriber",
- "trash",
- "walkdir",
-]
-
-[[package]]
-name = "dev-cleaner-gui"
-version = "0.1.0"
-dependencies = [
- "dev-cleaner-core",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
-]
-
-[[package]]
 name = "dialoguer"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3262,6 +3216,52 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "scour"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "comfy-table",
+ "ctrlc",
+ "dialoguer",
+ "indicatif",
+ "scour-core",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "scour-core"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "rayon",
+ "serde",
+ "serde_json",
+ "sys-locale",
+ "sysinfo",
+ "tempfile",
+ "toml 1.2.0+spec-1.1.0",
+ "tracing",
+ "tracing-subscriber",
+ "trash",
+ "walkdir",
+]
+
+[[package]]
+name = "scour-gui"
+version = "0.1.0"
+dependencies = [
+ "scour-core",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+]
 
 [[package]]
 name = "selectors"

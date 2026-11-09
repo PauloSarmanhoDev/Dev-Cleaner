@@ -1,9 +1,11 @@
-:root { color-scheme: dark; --bg:#14171c; --panel:#1d2128; --line:#2c323c; --fg:#e6e9ee; --muted:#8b93a1; --accent:#3b8eea; --danger:#e5484d; --btn:#2a3039; --hover:#1a1e24; }
-:root[data-theme=light] { color-scheme: light; --bg:#f4f6f9; --panel:#ffffff; --line:#d7dce3; --fg:#1b1f26; --muted:#667085; --btn:#eef1f5; --hover:#f0f4fa; }
+:root { color-scheme: dark; --bg:#0f141c; --panel:#161d27; --line:#263040; --fg:#f8fafc; --muted:#8b9bb4; --accent:#e84e1b; --accent-hover:#ff5c28; --danger:#e5484d; --btn:#1e2736; --hover:#1a2230; --logo-stack:#8b9bb4; --logo-upper:#ff5c28; --logo-lower:#f8fafc; }
+:root[data-theme=light] { color-scheme: light; --bg:#f4f6f9; --panel:#ffffff; --line:#d7dce3; --fg:#11161f; --muted:#475569; --accent:#e84e1b; --accent-hover:#d14112; --btn:#eef1f5; --hover:#f0f4fa; --logo-stack:#475569; --logo-upper:#e84e1b; --logo-lower:#11161f; }
 * { box-sizing: border-box; }
 body { margin:0; font:14px/1.4 "Segoe UI", system-ui, sans-serif; background:var(--bg); color:var(--fg); padding:16px; display:flex; flex-direction:column; gap:12px; height:100vh; }
-header { display:flex; justify-content:space-between; align-items:center; }
-header h1 { margin:0; font-size:20px; }
+header { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.brand { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.brand-title { margin:0; display:flex; align-items:center; line-height:1; }
+.brand-logo { height:32px; width:auto; display:block; }
 .header-actions { display:flex; gap:8px; }
 .sub, .muted { color:var(--muted); }
 .foot { font-size:11px; }
@@ -18,7 +20,8 @@ input[type=number] { width:64px; }
 button { background:var(--btn); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:7px 14px; cursor:pointer; }
 button:hover:not(:disabled) { border-color:var(--accent); }
 button:disabled { opacity:.45; cursor:not-allowed; }
-button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+button.primary:hover:not(:disabled) { background:var(--accent-hover); border-color:var(--accent-hover); }
 button.danger { background:var(--danger); border-color:var(--danger); color:#fff; }
 button.icon { padding:2px 8px; }
 .progress { position:relative; height:28px; background:var(--panel); border:1px solid var(--line); border-radius:6px; overflow:hidden; display:flex; align-items:center; }

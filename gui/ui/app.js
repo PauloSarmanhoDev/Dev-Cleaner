@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 /* ---------- i18n ---------- */
 const I18N = {
   pt: {
-    subtitle: "Caches, extensões e artefatos de linguagens, IDEs e projetos",
+    subtitle: "Limpeza profunda de disco, caches e artefatos de build para desenvolvedores",
     opt_lang: "Linguagens/Ferramentas", opt_ide: "IDEs/Editores",
     opt_root: "Pasta de projetos", opt_root_ph: "ex.: E:\\Git (vazio = não procurar)",
     pick: "Escolher...", opt_depth: "Profundidade", opt_older: "Sem uso há",
@@ -43,7 +43,7 @@ const I18N = {
     info_btn: "Sobre este item e consequências ao apagar",
   },
   en: {
-    subtitle: "Caches, extensions and artifacts of languages, IDEs and projects",
+    subtitle: "Deep disk & build-artifact cleaner for developers",
     opt_lang: "Languages/Tools", opt_ide: "IDEs/Editors",
     opt_root: "Projects folder", opt_root_ph: "e.g. E:\\Git (empty = don't search)",
     pick: "Browse...", opt_depth: "Depth", opt_older: "Unused for",

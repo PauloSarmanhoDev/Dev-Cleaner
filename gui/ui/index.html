@@ -3,13 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dev Cleaner</title>
+<meta name="theme-color" content="#0F141C">
+<title>Scour</title>
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <div>
-    <h1>Dev Cleaner</h1>
+  <div class="brand">
+    <h1 class="brand-title" aria-label="Scour">
+      <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 256" role="img" aria-hidden="true">
+        <g id="symbol">
+          <g id="storage-stack" fill="var(--logo-stack)" fill-rule="evenodd">
+            <path d="M 28 16 H 172 L 184 28 V 46 L 172 58 H 28 L 16 46 V 28 Z M 34 31 H 56 V 43 H 34 Z" />
+            <path d="M 28 74 H 104 L 78 100 V 116 H 28 L 16 104 V 86 Z M 34 89 H 56 V 101 H 34 Z" />
+            <path d="M 28 132 H 78 V 148 L 104 174 H 28 L 16 162 V 144 Z M 34 147 H 56 V 159 H 34 Z" />
+          </g>
+          <g id="s-chisel">
+            <path id="s-blade-upper" fill="var(--logo-upper)" d="M 128 72 H 240 L 206 106 H 140 L 126 120 V 139 H 172 L 138 173 H 118 L 92 147 V 108 Z" />
+            <path id="s-blade-lower" fill="var(--logo-lower)" d="M 204 240 H 92 L 126 206 H 192 L 206 192 V 173 H 160 L 194 139 H 214 L 240 165 V 204 Z" />
+          </g>
+        </g>
+        <g id="wordmark" fill="var(--logo-lower)" fill-rule="evenodd">
+          <path d="M 324 64 H 400 L 372 92 H 332 V 114 H 380 L 400 134 V 172 L 380 192 H 304 L 332 164 H 372 V 142 H 324 L 304 122 V 84 Z M 446 64 H 514 L 486 92 H 456 L 450 98 V 158 L 456 164 H 486 L 514 192 H 446 L 422 168 V 88 Z M 556 64 H 608 L 632 88 V 168 L 608 192 H 556 L 532 168 V 88 Z M 568 92 L 560 100 V 156 L 568 164 H 596 L 604 156 V 100 L 596 92 Z M 656 64 H 684 V 156 L 692 164 H 720 L 728 156 V 64 H 756 V 168 L 732 192 H 680 L 656 168 Z M 780 64 H 856 L 876 84 V 120 L 856 140 H 844 L 896 192 H 856 L 808 144 V 192 H 780 Z M 808 90 V 116 H 842 L 848 110 V 96 L 842 90 Z" />
+        </g>
+      </svg>
+    </h1>
     <span class="sub" data-i18n="subtitle"></span>
   </div>
   <div class="header-actions">
